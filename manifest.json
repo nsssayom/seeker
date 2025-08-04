@@ -1,0 +1,80 @@
+{
+  "manifest_version": 3,
+  "name": "Seeker - Universal Media Controls",
+  "version": "1.0.0",
+  "description": "Unifies keyboard controls across streaming platforms. Arrow keys for seeking, spacebar for play/pause, and more - consistent controls for Paramount+, Netflix, Disney+, Hulu, and other streaming services.",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://*.paramountplus.com/*",
+    "https://*.hulu.com/*",
+    "https://*.disneyplus.com/*",
+    "https://*.amazon.com/*",
+    "https://*.hbomax.com/*",
+    "https://*.max.com/*",
+    "https://*.peacocktv.com/*",
+    "https://*.appletv.com/*",
+    "https://*.tubi.tv/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.paramountplus.com/*",
+        "https://*.hulu.com/*",
+        "https://*.disneyplus.com/*",
+        "https://*.amazon.com/*",
+        "https://*.hbomax.com/*",
+        "https://*.max.com/*",
+        "https://*.peacocktv.com/*",
+        "https://*.appletv.com/*",
+        "https://*.tubi.tv/*"
+      ],
+      "js": [
+        "js/utils/logger.js",
+        "js/utils/dom-utils.js",
+        "js/core/player-detector.js",
+        "js/core/media-controller.js",
+        "js/core/keyboard-handler.js",
+        "js/platforms/paramount.js",
+        "js/platforms/generic.js",
+        "js/ui/notification.js",
+        "js/ui/settings-overlay.js",
+        "js/main.js"
+      ],
+      "css": [
+        "css/seeker-ui.css"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Seeker - Media Controls",
+    "default_icon": {
+      "16": "icons/icon-16.svg",
+      "32": "icons/icon-32.svg",
+      "48": "icons/icon-48.svg",
+      "128": "icons/icon-128.svg"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.svg",
+    "32": "icons/icon-32.svg",
+    "48": "icons/icon-48.svg",
+    "128": "icons/icon-128.svg"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "js/inject/*.js",
+        "css/*.css",
+        "icons/*.svg"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
