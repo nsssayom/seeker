@@ -32,12 +32,26 @@ class PlayerDetector {
             },
             'hulu.com': {
                 name: 'Hulu',
-                videoSelectors: ['video', '.player-video video'],
-                playerContainerSelectors: ['.player-container', '.video-player'],
-                seekBarSelectors: ['.progress-bar', '.scrubber'],
-                playButtonSelectors: ['.play-pause-button'],
-                volumeSelectors: ['.volume-control'],
-                fullscreenSelectors: ['.fullscreen-button']
+                videoSelectors: [
+                    'video[src]', 
+                    'video[data-testid]', 
+                    '.video-player video', 
+                    '.player-video video',
+                    'video'
+                ],
+                playerContainerSelectors: [
+                    '.PlaybackControlsOverPlayer', 
+                    '.player-container', 
+                    '.video-player',
+                    '.video-player-component',
+                    '[data-testid*="player"]'
+                ],
+                seekBarSelectors: ['.progress-bar', '.scrubber-bar'],
+                playButtonSelectors: ['.play-pause-button', '[data-testid="play-pause-click-target"]'],
+                volumeSelectors: ['.volume-control', '.volume-button'],
+                fullscreenSelectors: ['.fullscreen-button'],
+                rewindSelectors: ['.PlaybackTouchControls__rewind', '[data-testid="rewind-click-target"]'],
+                fastForwardSelectors: ['.PlaybackTouchControls__forward', '[data-testid="forward-click-target"]']
             },
             'disneyplus.com': {
                 name: 'Disney+',
@@ -150,7 +164,20 @@ class PlayerDetector {
             let video = null;
             for (const selector of config.videoSelectors) {
                 video = document.querySelector(selector);
-                if (video && video.readyState > 0) break;
+                if (video) {
+                    logger.debug(`Found video element with selector: ${selector}`, {
+                        readyState: video.readyState,
+                        src: video.src,
+                        currentSrc: video.currentSrc,
+                        duration: video.duration,
+                        platform: config.name
+                    });
+                    
+                    // For Hulu, accept video even if not fully loaded yet
+                    if (config.name === 'Hulu' || video.readyState > 0) {
+                        break;
+                    }
+                }
             }
 
             if (!video) return null;

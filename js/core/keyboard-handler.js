@@ -279,9 +279,24 @@ class KeyboardHandler {
             if (typeof this.mediaController[action] === 'function') {
                 const result = this.mediaController[action](...params);
                 
-                if (result && !mapping.platformHandled) {
-                    // Action was successful, prevent default behavior
-                    // (unless it's platform-handled like space key)
+                if (result && typeof result.then === 'function') {
+                    // Handle async methods (seek operations)
+                    // For async methods, we should prevent default immediately if it's a seek operation
+                    // to prevent browser's default behavior
+                    if (!mapping.platformHandled && (action.includes('seek') || action.includes('Seek'))) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    
+                    result.then((success) => {
+                        if (!success) {
+                            logger.debug(`Async action ${mapping.action} was not successful`);
+                        }
+                    }).catch((error) => {
+                        logger.error(`Async action ${mapping.action} failed:`, error);
+                    });
+                } else if (result && !mapping.platformHandled) {
+                    // Sync method was successful, prevent default behavior
                     event.preventDefault();
                     event.stopPropagation();
                 }

@@ -59,13 +59,8 @@ class SeekerExtension {
             
             logger.info('Seeker extension initialized successfully');
             
-            // Show initialization notification
-            if (window.SeekerNotification) {
-                window.SeekerNotification.showInfo(
-                    'Seeker Active', 
-                    'Keyboard controls enabled'
-                );
-            }
+            // Show initialization notification (respect notification settings, wait for config)
+            this.showInitializationNotification();
             
         } catch (error) {
             logger.error('Failed to initialize components:', error);
@@ -101,14 +96,20 @@ class SeekerExtension {
      */
     async initializePlatformIntegration() {
         const hostname = DOMUtils.getHostname();
+        logger.debug(`Initializing platform integration for hostname: ${hostname}`);
         
-        // Currently only supports Paramount+
+        // Support for multiple platforms
         if (hostname.includes('paramountplus.com')) {
             this.platformIntegration = new window.ParamountPlatform();
             this.platformIntegration.initialize();
             logger.debug(`Platform integration initialized: ${this.platformIntegration.name}`);
+        } else if (hostname.includes('hulu.com')) {
+            logger.debug('Detected Hulu platform, initializing...');
+            this.platformIntegration = new window.HuluPlatform();
+            this.platformIntegration.initialize();
+            logger.debug(`Platform integration initialized: ${this.platformIntegration.name}`);
         } else {
-            logger.debug('Platform not supported yet');
+            logger.debug(`Platform not supported yet for hostname: ${hostname}`);
         }
     }
 
@@ -203,13 +204,8 @@ class SeekerExtension {
             // Enable keyboard handler
             this.keyboardHandler.enable();
             
-            // Notify user
-            if (window.SeekerNotification) {
-                window.SeekerNotification.showInfo(
-                    'Player Detected',
-                    `Connected to ${player.platform}`
-                );
-            }
+            // Notify user (respect notification settings, wait for config)
+            this.showPlayerDetectedNotification(player.platform);
         } else {
             // No player available
             this.mediaController.setPlayer(null);
@@ -234,6 +230,64 @@ class SeekerExtension {
             } else {
                 window.SeekerNotification.disable();
             }
+        }
+    }
+
+    /**
+     * Show initialization notification after ensuring config is loaded
+     */
+    async showInitializationNotification() {
+        // Wait for both notification system and config to be ready
+        const waitForSystems = () => {
+            return new Promise((resolve) => {
+                const checkSystems = () => {
+                    if (window.SeekerNotification && window.SeekerConfig && window.SeekerConfig.loaded) {
+                        resolve();
+                    } else {
+                        setTimeout(checkSystems, 50);
+                    }
+                };
+                checkSystems();
+            });
+        };
+        
+        await waitForSystems();
+        
+        // Now safely check config and show notification
+        if (window.SeekerConfig.get('enableNotifications', true)) {
+            window.SeekerNotification.showInfo(
+                'Seeker Active', 
+                'Keyboard controls enabled'
+            );
+        }
+    }
+
+    /**
+     * Show player detected notification after ensuring config is loaded
+     */
+    async showPlayerDetectedNotification(platform) {
+        // Wait for both notification system and config to be ready
+        const waitForSystems = () => {
+            return new Promise((resolve) => {
+                const checkSystems = () => {
+                    if (window.SeekerNotification && window.SeekerConfig && window.SeekerConfig.loaded) {
+                        resolve();
+                    } else {
+                        setTimeout(checkSystems, 50);
+                    }
+                };
+                checkSystems();
+            });
+        };
+        
+        await waitForSystems();
+        
+        // Now safely check config and show notification
+        if (window.SeekerConfig.get('enableNotifications', true)) {
+            window.SeekerNotification.showInfo(
+                'Player Detected',
+                `Connected to ${platform}`
+            );
         }
     }
 

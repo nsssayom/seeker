@@ -4,7 +4,7 @@ A Chrome extension that provides consistent keyboard controls across streaming p
 
 ## What it does
 
-Unifies media controls across different streaming services with the same keyboard shortcuts everywhere. Currently works on Paramount+, with more platforms planned.
+Unifies media controls across different streaming services with the same keyboard shortcuts everywhere. Currently works on Paramount+ and Hulu, with more platforms planned.
 
 ## Keyboard shortcuts
 
@@ -26,11 +26,11 @@ Unifies media controls across different streaming services with the same keyboar
 2. Open Chrome and go to `chrome://extensions/`
 3. Enable "Developer mode" (top right)
 4. Click "Load unpacked" and select the extension folder
-5. Visit Paramount+ and the controls should work automatically
+5. Visit Paramount+ or Hulu and the controls should work automatically
 
 ## How it works
 
-The extension detects which streaming platform you're on and loads the appropriate controls. Currently supports Paramount+ with platform-specific features like skip intro and next episode shortcuts.
+The extension detects which streaming platform you're on and loads the appropriate controls. Currently supports Paramount+ and Hulu with platform-specific features like skip intro, skip ads, and next episode shortcuts.
 
 ## Project structure
 
@@ -43,7 +43,8 @@ seeker/
 │   │   ├── media-controller.js
 │   │   └── keyboard-handler.js
 │   ├── platforms/            # Platform-specific integrations
-│   │   └── paramount.js      # Paramount+ (currently implemented)
+│   │   ├── paramount.js      # Paramount+ integration
+│   │   └── hulu.js           # Hulu integration
 │   ├── ui/                   # UI components
 │   │   ├── notification.js
 │   │   └── settings-overlay.js

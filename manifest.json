@@ -9,7 +9,8 @@
     "scripting"
   ],
   "host_permissions": [
-    "https://*.paramountplus.com/*"
+    "https://*.paramountplus.com/*",
+    "https://*.hulu.com/*"
   ],
   "content_scripts": [
     {
@@ -24,6 +25,28 @@
         "js/core/media-controller.js",
         "js/core/keyboard-handler.js",
         "js/platforms/paramount.js",
+        "js/ui/notification.js",
+        "js/ui/settings-overlay.js",
+        "js/main.js"
+      ],
+      "css": [
+        "css/seeker-ui.css"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "https://*.hulu.com/*"
+      ],
+      "js": [
+        "js/utils/logger.js",
+        "js/utils/dom-utils.js",
+        "js/utils/config.js",
+        "js/core/player-detector.js",
+        "js/core/media-controller.js",
+        "js/core/keyboard-handler.js",
+        "js/platforms/hulu.js",
         "js/ui/notification.js",
         "js/ui/settings-overlay.js",
         "js/main.js"

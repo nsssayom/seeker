@@ -41,49 +41,225 @@ class MediaController {
     }
 
     /**
+     * Wait for video metadata to be available
+     * @param {HTMLVideoElement} video - Video element
+     * @param {number} timeout - Timeout in milliseconds
+     * @returns {Promise<boolean>} True if metadata is available, false if timeout
+     */
+    async waitForVideoMetadata(video, timeout = 3000) {
+        // Validate video element first
+        if (!video || typeof video.duration === 'undefined') {
+            logger.warn('Invalid video element provided to waitForVideoMetadata');
+            return false;
+        }
+        
+        // Check if metadata is already available
+        if (isFinite(video.duration) && video.duration > 0 && isFinite(video.currentTime)) {
+            logger.debug('Video metadata already available');
+            return true;
+        }
+
+        // For Hulu, be more lenient with metadata requirements
+        const isHulu = window.location.hostname.includes('hulu.com');
+        if (isHulu) {
+            // On Hulu, if we have a video element with src and it's not in error state, consider it ready
+            if ((video.src || video.currentSrc) && video.readyState >= 1 && !video.error) {
+                logger.debug('Hulu video considered ready based on src and readyState');
+                return true;
+            }
+            
+            // Also check if video is actively playing (has currentTime changes)
+            if (isFinite(video.currentTime) && video.currentTime > 0) {
+                logger.debug('Hulu video considered ready based on currentTime');
+                return true;
+            }
+        }
+
+        return new Promise((resolve) => {
+            const startTime = Date.now();
+            let resolved = false;
+            let lastCurrentTime = video.currentTime;
+            
+            const cleanupAndResolve = (result) => {
+                if (resolved) return;
+                resolved = true;
+                
+                video.removeEventListener('loadedmetadata', onLoadedMetadata);
+                video.removeEventListener('canplay', onLoadedMetadata);
+                video.removeEventListener('timeupdate', onTimeUpdate);
+                video.removeEventListener('error', onError);
+                
+                resolve(result);
+            };
+            
+            const checkMetadata = () => {
+                if (resolved) return;
+                
+                try {
+                    // Standard check for duration and currentTime
+                    if (isFinite(video.duration) && video.duration > 0 && isFinite(video.currentTime)) {
+                        logger.debug('Video metadata became available');
+                        cleanupAndResolve(true);
+                        return;
+                    }
+                    
+                    // For Hulu, additional checks
+                    if (isHulu) {
+                        // Check if readyState indicates we can seek
+                        if (video.readyState >= 2 && (video.src || video.currentSrc)) {
+                            logger.debug('Hulu video ready based on readyState >= 2');
+                            cleanupAndResolve(true);
+                            return;
+                        }
+                        
+                        // Check if currentTime is changing (video is playing)
+                        if (isFinite(video.currentTime) && video.currentTime !== lastCurrentTime) {
+                            logger.debug('Hulu video ready based on currentTime change');
+                            cleanupAndResolve(true);
+                            return;
+                        }
+                        lastCurrentTime = video.currentTime;
+                    }
+                    
+                    if (Date.now() - startTime > timeout) {
+                        logger.debug(`Video metadata timeout after ${timeout}ms`);
+                        cleanupAndResolve(false);
+                        return;
+                    }
+                    
+                    requestAnimationFrame(checkMetadata);
+                } catch (error) {
+                    logger.warn('Error checking video metadata:', error);
+                    cleanupAndResolve(false);
+                }
+            };
+            
+            // Event handlers
+            const onLoadedMetadata = () => {
+                try {
+                    logger.debug('loadedmetadata event fired');
+                    if (isFinite(video.duration) && video.duration > 0) {
+                        cleanupAndResolve(true);
+                    } else {
+                        requestAnimationFrame(checkMetadata);
+                    }
+                } catch (error) {
+                    logger.warn('Error in loadedmetadata event:', error);
+                    cleanupAndResolve(false);
+                }
+            };
+            
+            const onTimeUpdate = () => {
+                try {
+                    if (isHulu && isFinite(video.currentTime)) {
+                        logger.debug('Hulu timeupdate event - video is active');
+                        cleanupAndResolve(true);
+                    }
+                } catch (error) {
+                    logger.warn('Error in timeupdate event:', error);
+                }
+            };
+            
+            const onError = () => {
+                logger.warn('Video error event during metadata wait');
+                cleanupAndResolve(false);
+            };
+            
+            video.addEventListener('loadedmetadata', onLoadedMetadata);
+            video.addEventListener('canplay', onLoadedMetadata);
+            video.addEventListener('timeupdate', onTimeUpdate);
+            video.addEventListener('error', onError);
+            
+            checkMetadata();
+        });
+    }
+
+    /**
      * Seek forward by specified amount
      * @param {number} amount - Seconds to seek forward (default: config value)
      */
-    seekForward(amount = null) {
+    async seekForward(amount = null) {
         if (amount === null) {
             amount = this.config ? this.config.getSeekAmounts().arrow : 5;
         }
         if (!this.canSeek()) return false;
 
         const video = this.currentPlayer.video;
-        const newTime = Math.min(video.currentTime + amount, video.duration);
         
-        video.currentTime = newTime;
-        logger.debug(`Seeked forward ${amount}s to ${newTime.toFixed(2)}s`);
+        // Wait for video metadata to be available
+        const metadataReady = await this.waitForVideoMetadata(video, 2000);
         
-        if (this.config && this.config.get('enableNotifications', true)) {
-            this.showSeekNotification(`+${amount}s`, newTime);
+        if (!metadataReady) {
+            logger.warn('Cannot seek: video metadata not available after waiting');
+            
+            // For Hulu, always try fallback since their player works differently
+            if (window.location.hostname.includes('hulu.com')) {
+                logger.debug('Using Hulu seek fallback due to metadata not ready');
+                return this.attemptHuluSeekFallback(video, amount, 'forward');
+            }
+            
+            return false;
         }
         
-        return true;
+        const newTime = Math.min(video.currentTime + amount, video.duration);
+        
+        try {
+            video.currentTime = newTime;
+            logger.debug(`Seeked forward ${amount}s to ${newTime.toFixed(2)}s`);
+            
+            if (this.config && this.config.get('enableNotifications', true)) {
+                this.showSeekNotification(`+${amount}s`, newTime);
+            }
+            
+            return true;
+        } catch (error) {
+            logger.error('Error during seek forward:', error);
+            return false;
+        }
     }
 
     /**
      * Seek backward by specified amount
      * @param {number} amount - Seconds to seek backward (default: config value)
      */
-    seekBackward(amount = null) {
+    async seekBackward(amount = null) {
         if (amount === null) {
             amount = this.config ? this.config.getSeekAmounts().arrow : 5;
         }
         if (!this.canSeek()) return false;
 
         const video = this.currentPlayer.video;
-        const newTime = Math.max(video.currentTime - amount, 0);
         
-        video.currentTime = newTime;
-        logger.debug(`Seeked backward ${amount}s to ${newTime.toFixed(2)}s`);
+        // Wait for video metadata to be available
+        const metadataReady = await this.waitForVideoMetadata(video, 2000);
         
-        if (this.config && this.config.get('enableNotifications', true)) {
-            this.showSeekNotification(`-${amount}s`, newTime);
+        if (!metadataReady) {
+            logger.warn('Cannot seek: video metadata not available after waiting');
+            
+            // For Hulu, always try fallback since their player works differently
+            if (window.location.hostname.includes('hulu.com')) {
+                logger.debug('Using Hulu seek fallback due to metadata not ready');
+                return this.attemptHuluSeekFallback(video, amount, 'backward');
+            }
+            
+            return false;
         }
         
-        return true;
+        const newTime = Math.max(video.currentTime - amount, 0);
+        
+        try {
+            video.currentTime = newTime;
+            logger.debug(`Seeked backward ${amount}s to ${newTime.toFixed(2)}s`);
+            
+            if (this.config && this.config.get('enableNotifications', true)) {
+                this.showSeekNotification(`-${amount}s`, newTime);
+            }
+            
+            return true;
+        } catch (error) {
+            logger.error('Error during seek backward:', error);
+            return false;
+        }
     }
 
     /**
@@ -102,24 +278,250 @@ class MediaController {
         return this.seekBackward(extendedAmount);
     }
 
-    /**
+        /**
      * Seek to specific percentage of video
      * @param {number} percentage - Percentage (0-100) to seek to
      */
-    seekToPercentage(percentage) {
+    async seekToPercentage(percentage) {
         if (!this.canSeek()) return false;
 
         const video = this.currentPlayer.video;
+        
+        // Wait for video metadata to be available
+        const metadataReady = await this.waitForVideoMetadata(video, 2000);
+        
+        if (!metadataReady) {
+            logger.warn('Cannot seek: video metadata not available after waiting');
+            
+            // For Hulu, always try fallback since their player works differently
+            if (window.location.hostname.includes('hulu.com')) {
+                logger.debug('Using Hulu percentage seek fallback due to metadata not ready');
+                return this.attemptHuluPercentageSeekFallback(video, percentage);
+            }
+            
+            return false;
+        }
+
         const newTime = (percentage / 100) * video.duration;
         
-        video.currentTime = newTime;
-        logger.debug(`Seeked to ${percentage}% (${newTime.toFixed(2)}s)`);
-        
-        if (this.config && this.config.get('enableNotifications', true)) {
-            this.showSeekNotification(`${percentage}%`, newTime);
+        // Validate the calculated time
+        if (!isFinite(newTime) || newTime < 0) {
+            logger.warn('Cannot seek: calculated time is invalid', { newTime, percentage, duration: video.duration });
+            return false;
         }
         
-        return true;
+        try {
+            video.currentTime = newTime;
+            logger.debug(`Seeked to ${percentage}% (${newTime.toFixed(2)}s)`);
+            
+            if (this.config && this.config.get('enableNotifications', true)) {
+                this.showSeekNotification(`${percentage}%`, newTime);
+            }
+            
+            return true;
+        } catch (error) {
+            logger.error('Error during percentage seek:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Fallback seek method for Hulu when metadata isn't available
+     * @param {HTMLVideoElement} video - Video element
+     * @param {number} amount - Seek amount in seconds
+     * @param {string} direction - 'forward' or 'backward'
+     * @returns {boolean} Success status
+     */
+    attemptHuluSeekFallback(video, amount, direction) {
+        try {
+            logger.debug(`Attempting Hulu seek fallback: ${direction} ${amount}s`);
+            
+            // Try using Hulu's native touch controls first (rewind/forward buttons)
+            if (direction === 'forward') {
+                const forwardButton = document.querySelector('[data-testid="forward-click-target"], .PlaybackTouchControls__forward');
+                if (forwardButton && forwardButton.offsetParent !== null) {
+                    logger.debug('Using Hulu forward button for seek');
+                    forwardButton.click();
+                    
+                    if (this.config && this.config.get('enableNotifications', true)) {
+                        this.showSeekNotification(`+${amount}s`, 0);
+                    }
+                    return true;
+                }
+            } else {
+                const rewindButton = document.querySelector('[data-testid="rewind-click-target"], .PlaybackTouchControls__rewind');
+                if (rewindButton && rewindButton.offsetParent !== null) {
+                    logger.debug('Using Hulu rewind button for seek');
+                    rewindButton.click();
+                    
+                    if (this.config && this.config.get('enableNotifications', true)) {
+                        this.showSeekNotification(`-${amount}s`, 0);
+                    }
+                    return true;
+                }
+            }
+            
+            // Try seeking through progress bar if native buttons aren't available
+            const seekBar = document.querySelector('.progress-bar, .scrubber-bar, [data-testid*="progress"], [data-testid*="scrubber"]');
+            
+            if (seekBar) {
+                const rect = seekBar.getBoundingClientRect();
+                
+                // Try to get current position from progress indicator
+                const progressIndicator = seekBar.querySelector('[style*="width"], [style*="transform"], .progress-filled');
+                let currentPercentage = 0;
+                
+                if (progressIndicator) {
+                    // Try to extract current position from style
+                    const style = progressIndicator.style;
+                    const widthMatch = style.width?.match(/(\d+(?:\.\d+)?)/);
+                    const transformMatch = style.transform?.match(/translateX\((\d+(?:\.\d+)?)%?\)/);
+                    
+                    if (widthMatch) {
+                        currentPercentage = parseFloat(widthMatch[1]);
+                    } else if (transformMatch) {
+                        currentPercentage = parseFloat(transformMatch[1]);
+                    }
+                }
+                
+                // Estimate duration and calculate new position
+                const estimatedDuration = isFinite(video.duration) && video.duration > 0 ? video.duration : 2700; // Default 45min
+                const currentTime = (currentPercentage / 100) * estimatedDuration;
+                
+                let newTime;
+                if (direction === 'forward') {
+                    newTime = Math.min(currentTime + amount, estimatedDuration);
+                } else {
+                    newTime = Math.max(currentTime - amount, 0);
+                }
+                
+                const newPercentage = Math.max(0, Math.min(100, (newTime / estimatedDuration) * 100));
+                const clickX = rect.left + (rect.width * newPercentage / 100);
+                
+                // Simulate click on seek bar
+                const events = [
+                    new MouseEvent('mousedown', {
+                        bubbles: true,
+                        clientX: clickX,
+                        clientY: rect.top + rect.height / 2
+                    }),
+                    new MouseEvent('click', {
+                        bubbles: true,
+                        clientX: clickX,
+                        clientY: rect.top + rect.height / 2
+                    }),
+                    new MouseEvent('mouseup', {
+                        bubbles: true,
+                        clientX: clickX,
+                        clientY: rect.top + rect.height / 2
+                    })
+                ];
+                
+                events.forEach(event => seekBar.dispatchEvent(event));
+                
+                logger.debug(`Hulu fallback seek: clicked at ${newPercentage.toFixed(1)}% (${newTime.toFixed(1)}s)`);
+                
+                if (this.config && this.config.get('enableNotifications', true)) {
+                    this.showSeekNotification(`${direction === 'forward' ? '+' : '-'}${amount}s`, newTime);
+                }
+                
+                return true;
+            }
+            
+            // Last resort: try setting currentTime if we have any reasonable value
+            const currentTime = isFinite(video.currentTime) ? video.currentTime : 0;
+            const newTime = direction === 'forward' 
+                ? currentTime + amount 
+                : Math.max(currentTime - amount, 0);
+            
+            if (isFinite(newTime) && newTime >= 0) {
+                video.currentTime = newTime;
+                logger.debug(`Hulu fallback: direct currentTime set to ${newTime.toFixed(2)}s`);
+                
+                if (this.config && this.config.get('enableNotifications', true)) {
+                    this.showSeekNotification(`${direction === 'forward' ? '+' : '-'}${amount}s`, newTime);
+                }
+                return true;
+            }
+            
+            logger.warn(`Hulu fallback: no viable seek method found`);
+            return false;
+            
+        } catch (error) {
+            logger.error('Hulu seek fallback failed:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Fallback percentage seek method for Hulu when metadata isn't available
+     * @param {HTMLVideoElement} video - Video element
+     * @param {number} percentage - Target percentage (0-100)
+     * @returns {boolean} Success status
+     */
+    attemptHuluPercentageSeekFallback(video, percentage) {
+        try {
+            logger.debug(`Attempting Hulu percentage seek fallback: ${percentage}%`);
+            
+            // For Hulu, try to trigger seeking through their progress bar controls
+            const seekBar = document.querySelector('.progress-bar, .scrubber-bar, [data-testid*="progress"], [data-testid*="scrubber"]');
+            
+            if (seekBar) {
+                const rect = seekBar.getBoundingClientRect();
+                const clickX = rect.left + (rect.width * percentage / 100);
+                
+                // Use more comprehensive mouse event sequence for better compatibility
+                const events = [
+                    new MouseEvent('mousedown', {
+                        bubbles: true,
+                        clientX: clickX,
+                        clientY: rect.top + rect.height / 2
+                    }),
+                    new MouseEvent('click', {
+                        bubbles: true,
+                        clientX: clickX,
+                        clientY: rect.top + rect.height / 2
+                    }),
+                    new MouseEvent('mouseup', {
+                        bubbles: true,
+                        clientX: clickX,
+                        clientY: rect.top + rect.height / 2
+                    })
+                ];
+                
+                events.forEach(event => seekBar.dispatchEvent(event));
+                
+                logger.debug(`Hulu fallback percentage seek: clicked at ${percentage}%`);
+                
+                if (this.config && this.config.get('enableNotifications', true)) {
+                    this.showSeekNotification(`${percentage}%`, 0);
+                }
+                
+                return true;
+            }
+            
+            // Last resort: estimate and set currentTime (with better estimation)
+            const estimatedDuration = isFinite(video.duration) && video.duration > 0 ? video.duration : 2700; // Default 45min
+            const newTime = (percentage / 100) * estimatedDuration;
+            
+            // Validate the calculated time before setting
+            if (isFinite(newTime) && newTime >= 0 && newTime <= estimatedDuration) {
+                video.currentTime = newTime;
+                logger.debug(`Hulu fallback: estimated seek to ${newTime.toFixed(2)}s (${percentage}%)`);
+                
+                if (this.config && this.config.get('enableNotifications', true)) {
+                    this.showSeekNotification(`${percentage}%`, newTime);
+                }
+                return true;
+            } else {
+                logger.warn(`Hulu fallback: invalid calculated time ${newTime} for percentage ${percentage}%`);
+                return false;
+            }
+            
+        } catch (error) {
+            logger.error('Hulu percentage seek fallback failed:', error);
+            return false;
+        }
     }
 
     /**
@@ -405,9 +807,21 @@ class MediaController {
      * @param {number} currentTime - Current video time
      */
     showSeekNotification(action, currentTime) {
-        if (!window.SeekerNotification) return;
+        if (!window.SeekerNotification || !this.config || !this.config.get('enableNotifications', true)) return;
         
         const duration = this.currentPlayer.video.duration;
+        
+        // Handle cases where duration or currentTime aren't available
+        if (!isFinite(duration) || duration <= 0 || !isFinite(currentTime)) {
+            // For Hulu fallback cases, show simpler notification
+            window.SeekerNotification.show(
+                `${action}`,
+                'Seeking...',
+                'seek'
+            );
+            return;
+        }
+        
         const percentage = ((currentTime / duration) * 100).toFixed(1);
         const timeStr = this.formatTime(currentTime);
         const durationStr = this.formatTime(duration);
@@ -424,7 +838,7 @@ class MediaController {
      * @param {string} action - Action description
      */
     showPlaybackNotification(action) {
-        if (!window.SeekerNotification) return;
+        if (!window.SeekerNotification || !this.config || !this.config.get('enableNotifications', true)) return;
         
         window.SeekerNotification.showPlaybackNotification(action);
     }
@@ -435,7 +849,7 @@ class MediaController {
      * @param {boolean} muted - Whether muted
      */
     showVolumeNotification(volume, muted = false) {
-        if (!window.SeekerNotification) return;
+        if (!window.SeekerNotification || !this.config || !this.config.get('enableNotifications', true)) return;
         
         const volumePercent = Math.round(volume * 100);
         const message = muted ? 'Muted' : `${volumePercent}%`;
@@ -449,7 +863,7 @@ class MediaController {
      * @returns {string} Formatted time string
      */
     formatTime(seconds) {
-        if (isNaN(seconds)) return '00:00';
+        if (!isFinite(seconds) || seconds < 0) return '00:00';
         
         const hours = Math.floor(seconds / 3600);
         const minutes = Math.floor((seconds % 3600) / 60);

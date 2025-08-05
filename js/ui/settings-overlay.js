@@ -1088,7 +1088,9 @@ class SettingsOverlay {
         }
         this.updateUI();
         this.showAutoSaveFeedback();
-        window.SeekerNotification.showInfo('Settings Reset', 'Settings restored to defaults');
+        if (this.config && this.config.get('enableNotifications', true)) {
+            window.SeekerNotification.showInfo('Settings Reset', 'Settings restored to defaults');
+        }
     }
 
     /**

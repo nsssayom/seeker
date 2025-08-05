@@ -7,10 +7,44 @@ class SeekerNotification {
         this.container = null;
         this.currentNotification = null;
         this.hideTimeout = null;
-        this.isEnabled = true;
+        this.isEnabled = true; // Default to true, will be updated from config
         
         this.createContainer();
         this.setupStyles();
+        
+        // Wait for config to load and set initial state
+        this.initializeFromConfig();
+    }
+    
+    /**
+     * Initialize notification state from config
+     */
+    async initializeFromConfig() {
+        // Wait for config to be available and loaded
+        const waitForConfig = () => {
+            return new Promise((resolve) => {
+                const checkConfig = () => {
+                    if (window.SeekerConfig && window.SeekerConfig.loaded) {
+                        resolve();
+                    } else {
+                        setTimeout(checkConfig, 50);
+                    }
+                };
+                checkConfig();
+            });
+        };
+        
+        await waitForConfig();
+        
+        // Set initial state from config
+        const notificationsEnabled = window.SeekerConfig.get('enableNotifications', true);
+        if (notificationsEnabled) {
+            this.enable();
+        } else {
+            this.disable();
+        }
+        
+        logger.debug(`Notifications initialized from config: ${notificationsEnabled ? 'enabled' : 'disabled'}`);
     }
 
     /**
@@ -264,6 +298,17 @@ class SeekerNotification {
      * @param {number} duration - Total video duration
      */
     showSeekNotification(action, currentTime, duration) {
+        // Handle cases where duration or currentTime aren't available
+        if (!isFinite(duration) || duration <= 0 || !isFinite(currentTime)) {
+            this.show(
+                `Seek ${action}`,
+                'Seeking...',
+                'seek',
+                1500
+            );
+            return;
+        }
+        
         const percentage = ((currentTime / duration) * 100).toFixed(1);
         const timeStr = this.formatTime(currentTime);
         const durationStr = this.formatTime(duration);
@@ -324,7 +369,7 @@ class SeekerNotification {
      * @returns {string} Formatted time string
      */
     formatTime(seconds) {
-        if (isNaN(seconds)) return '00:00';
+        if (!isFinite(seconds) || seconds < 0) return '00:00';
         
         const hours = Math.floor(seconds / 3600);
         const minutes = Math.floor((seconds % 3600) / 60);
