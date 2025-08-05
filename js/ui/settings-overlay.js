@@ -37,6 +37,9 @@ class SettingsOverlay {
         this.overlay.className = 'seeker-settings-overlay';
         this.overlay.innerHTML = this.getOverlayHTML();
         
+        // Apply dark mode class based on system preference
+        this.applyTheme();
+        
         document.body.appendChild(this.overlay);
     }
 
@@ -51,7 +54,7 @@ class SettingsOverlay {
                 <div class="seeker-settings-header">
                     <h2>Seeker Settings</h2>
                     <button class="seeker-settings-close" aria-label="Close settings">
-                        <svg viewBox="0 0 24 24" width="24" height="24">
+                        <svg viewBox="0 0 24 24" width="20" height="20">
                             <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
                         </svg>
                     </button>
@@ -59,55 +62,115 @@ class SettingsOverlay {
                 
                 <div class="seeker-settings-content">
                     <div class="seeker-settings-section">
-                        <h3>Seeking</h3>
+                        <h3>
+                            <svg class="section-icon" viewBox="0 0 24 24" width="18" height="18">
+                                <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                            </svg>
+                            Seeking
+                        </h3>
                         <div class="seeker-setting-row">
-                            <label for="seek-amount">Seek Amount (seconds)</label>
-                            <input type="number" id="seek-amount" min="1" max="60" value="5">
+                            <div class="setting-info">
+                                <label for="seek-amount">Seek Amount</label>
+                                <span class="setting-desc">Seconds to skip per arrow key press</span>
+                            </div>
+                            <div class="number-input-container">
+                                <input type="number" id="seek-amount" min="1" max="60" value="5">
+                                <span class="input-unit">sec</span>
+                            </div>
                         </div>
                         <div class="seeker-setting-row">
-                            <label>
-                                <input type="checkbox" id="enable-notifications"> 
-                                Show notifications
-                            </label>
+                            <div class="setting-info">
+                                <label>Show notifications</label>
+                                <span class="setting-desc">Display seek and volume notifications</span>
+                            </div>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="enable-notifications" class="toggle-input">
+                                <label for="enable-notifications" class="toggle-label">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
                         </div>
                         <div class="seeker-setting-row">
-                            <label>
-                                <input type="checkbox" id="enable-seek-preview"> 
-                                Show seek preview
-                            </label>
+                            <div class="setting-info">
+                                <label>Show seek preview</label>
+                                <span class="setting-desc">Preview position while seeking</span>
+                            </div>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="enable-seek-preview" class="toggle-input">
+                                <label for="enable-seek-preview" class="toggle-label">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                     
                     <div class="seeker-settings-section">
-                        <h3>Volume Control</h3>
+                        <h3>
+                            <svg class="section-icon" viewBox="0 0 24 24" width="18" height="18">
+                                <path fill="currentColor" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                            </svg>
+                            Volume Control
+                        </h3>
                         <div class="seeker-setting-row">
-                            <label for="volume-step">Volume Step (%)</label>
-                            <input type="number" id="volume-step" min="1" max="50" value="10">
+                            <div class="setting-info">
+                                <label for="volume-step">Volume Step</label>
+                                <span class="setting-desc">Volume change per up/down arrow key</span>
+                            </div>
+                            <div class="number-input-container">
+                                <input type="number" id="volume-step" min="1" max="50" value="10">
+                                <span class="input-unit">%</span>
+                            </div>
                         </div>
                         <div class="seeker-setting-row">
-                            <label>
-                                <input type="checkbox" id="enable-volume-control"> 
-                                Enable volume control
-                            </label>
+                            <div class="setting-info">
+                                <label>Enable volume control</label>
+                                <span class="setting-desc">Control volume with keyboard shortcuts</span>
+                            </div>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="enable-volume-control" class="toggle-input">
+                                <label for="enable-volume-control" class="toggle-label">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                     
                     <div class="seeker-settings-section">
-                        <h3>Playback Control</h3>
+                        <h3>
+                            <svg class="section-icon" viewBox="0 0 24 24" width="18" height="18">
+                                <path fill="currentColor" d="M8 5v14l11-7z"/>
+                            </svg>
+                            Playback Control
+                        </h3>
                         <div class="seeker-setting-row">
-                            <label>
-                                <input type="checkbox" id="enable-playback-control"> 
-                                Enable play/pause control
-                            </label>
+                            <div class="setting-info">
+                                <label>Enable play/pause control</label>
+                                <span class="setting-desc">Control playback with keyboard shortcuts</span>
+                            </div>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="enable-playback-control" class="toggle-input">
+                                <label for="enable-playback-control" class="toggle-label">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                     
-                    <div class="seeker-settings-section">
-                        <h3>Keyboard Shortcuts</h3>
-                        <div class="seeker-shortcuts-list">
+                    <div class="seeker-settings-section seeker-shortcuts-section">
+                        <h3>
+                            <svg class="section-icon" viewBox="0 0 24 24" width="18" height="18">
+                                <path fill="currentColor" d="M20 7h-9v2h9V7zm0 6h-5v2h5v-2zM4 5.5C4 6.33 4.67 7 5.5 7S7 6.33 7 5.5 6.33 4 5.5 4 4 4.67 4 5.5zM4 12.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5S6.33 11 5.5 11 4 11.67 4 12.5zM4 19.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5S6.33 18 5.5 18 4 18.67 4 19.5z"/>
+                            </svg>
+                            Keyboard Shortcuts
+                        </h3>
+                        <div class="seeker-shortcuts-grid">
                             <div class="seeker-shortcut-item">
                                 <span class="shortcut-key">←/→</span>
                                 <span class="shortcut-desc" id="arrow-seek-desc">Seek backward/forward</span>
+                            </div>
+                            <div class="seeker-shortcut-item">
+                                <span class="shortcut-key">J/L</span>
+                                <span class="shortcut-desc" id="extended-seek-desc">Fast seek backward/forward</span>
                             </div>
                             <div class="seeker-shortcut-item">
                                 <span class="shortcut-key">Space</span>
@@ -134,29 +197,32 @@ class SettingsOverlay {
                                 <span class="shortcut-desc">Toggle captions</span>
                             </div>
                             <div class="seeker-shortcut-item">
-                                <span class="shortcut-key">J/L</span>
-                                <span class="shortcut-desc" id="extended-seek-desc">Fast seek backward/forward</span>
+                                <span class="shortcut-key">0-9</span>
+                                <span class="shortcut-desc">Seek to percentage</span>
                             </div>
                             <div class="seeker-shortcut-item" id="next-episode-shortcut" style="display: none;">
                                 <span class="shortcut-key">N</span>
-                                <span class="shortcut-desc">Next episode (when available)</span>
+                                <span class="shortcut-desc">Next episode</span>
                             </div>
                             <div class="seeker-shortcut-item" id="skip-intro-shortcut" style="display: none;">
                                 <span class="shortcut-key">S</span>
-                                <span class="shortcut-desc">Skip intro (when available)</span>
-                            </div>
-                            <div class="seeker-shortcut-item">
-                                <span class="shortcut-key">0-9</span>
-                                <span class="shortcut-desc">Seek to percentage</span>
+                                <span class="shortcut-desc">Skip intro</span>
                             </div>
                         </div>
                     </div>
                     
                     <div class="seeker-settings-section">
-                        <h3>About</h3>
+                        <h3>
+                            <svg class="section-icon" viewBox="0 0 24 24" width="18" height="18">
+                                <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                            </svg>
+                            About
+                        </h3>
                         <div class="seeker-about-info">
-                            <p><strong>Seeker - Universal Media Controls</strong></p>
-                            <p>Version 1.0.0</p>
+                            <div class="about-item">
+                                <strong>Seeker - Universal Media Controls</strong>
+                                <span class="version-badge">v1.0.0</span>
+                            </div>
                             <p>Adds keyboard-based seeking and media controls to streaming platforms.</p>
                             <div class="seeker-platform-status">
                                 <span id="current-platform">Platform: Loading...</span>
@@ -166,8 +232,18 @@ class SettingsOverlay {
                 </div>
                 
                 <div class="seeker-settings-footer">
-                    <button class="seeker-btn seeker-btn-secondary" id="reset-settings">Reset to Defaults</button>
-                    <button class="seeker-btn seeker-btn-primary" id="save-settings">Save Changes</button>
+                    <button class="seeker-btn seeker-btn-secondary" id="reset-settings">
+                        <svg viewBox="0 0 24 24" width="16" height="16">
+                            <path fill="currentColor" d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                        </svg>
+                        Reset
+                    </button>
+                    <button class="seeker-btn seeker-btn-primary" id="save-settings">
+                        <svg viewBox="0 0 24 24" width="16" height="16">
+                            <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                        </svg>
+                        Save Changes
+                    </button>
                 </div>
             </div>
         `;
@@ -189,6 +265,8 @@ class SettingsOverlay {
                 align-items: center;
                 justify-content: center;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                padding: 20px;
+                box-sizing: border-box;
             }
             
             .seeker-settings-overlay.show {
@@ -202,20 +280,22 @@ class SettingsOverlay {
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: rgba(0, 0, 0, 0.7);
-                backdrop-filter: blur(4px);
+                background: rgba(0, 0, 0, 0.75);
+                backdrop-filter: blur(8px);
             }
             
             .seeker-settings-panel {
                 position: relative;
                 background: white;
-                border-radius: 12px;
-                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-                max-width: 600px;
-                width: 90%;
-                max-height: 80vh;
+                border-radius: 16px;
+                box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+                max-width: 580px;
+                width: 100%;
+                max-height: calc(100vh - 40px);
                 overflow: hidden;
                 animation: slideIn 0.3s ease-out;
+                display: flex;
+                flex-direction: column;
             }
             
             .seeker-settings-header {
@@ -223,40 +303,45 @@ class SettingsOverlay {
                 align-items: center;
                 justify-content: space-between;
                 padding: 20px 24px;
-                border-bottom: 1px solid #e5e5e5;
-                background: #f8f9fa;
+                border-bottom: 1px solid #e5e7eb;
+                background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+                flex-shrink: 0;
             }
             
             .seeker-settings-header h2 {
                 margin: 0;
-                font-size: 20px;
+                font-size: 18px;
                 font-weight: 600;
-                color: #1a1a1a;
+                color: #1f2937;
             }
             
             .seeker-settings-close {
                 background: none;
                 border: none;
                 padding: 8px;
-                border-radius: 6px;
+                border-radius: 8px;
                 cursor: pointer;
-                color: #666;
+                color: #6b7280;
                 transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
             
             .seeker-settings-close:hover {
-                background: #e5e5e5;
-                color: #1a1a1a;
+                background: rgba(0, 0, 0, 0.1);
+                color: #374151;
             }
             
             .seeker-settings-content {
-                padding: 24px;
-                max-height: 60vh;
+                padding: 16px 24px;
                 overflow-y: auto;
+                flex: 1;
+                min-height: 0;
             }
             
             .seeker-settings-section {
-                margin-bottom: 32px;
+                margin-bottom: 20px;
             }
             
             .seeker-settings-section:last-child {
@@ -264,44 +349,143 @@ class SettingsOverlay {
             }
             
             .seeker-settings-section h3 {
-                margin: 0 0 16px 0;
-                font-size: 16px;
+                margin: 0 0 12px 0;
+                font-size: 15px;
                 font-weight: 600;
-                color: #1a1a1a;
-                border-bottom: 2px solid #007AFF;
-                padding-bottom: 8px;
+                color: #1f2937;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding-bottom: 6px;
+                border-bottom: 2px solid #3b82f6;
+            }
+            
+            .section-icon {
+                color: #3b82f6;
             }
             
             .seeker-setting-row {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                margin-bottom: 16px;
+                margin-bottom: 8px;
                 padding: 8px 0;
+                min-height: 40px;
             }
             
-            .seeker-setting-row label {
+            .setting-info {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+            }
+            
+            .setting-info label {
                 font-size: 14px;
-                color: #333;
+                font-weight: 500;
+                color: #374151;
+                margin: 0;
+                cursor: pointer;
+            }
+            
+            .setting-desc {
+                font-size: 12px;
+                color: #6b7280;
+                line-height: 1.3;
+            }
+            
+            .number-input-container {
                 display: flex;
                 align-items: center;
-                gap: 8px;
+                gap: 6px;
+                background: #f9fafb;
+                border: 1px solid #d1d5db;
+                border-radius: 8px;
+                padding: 2px 8px 2px 2px;
+                transition: all 0.2s ease;
             }
             
-            .seeker-setting-row input[type="number"] {
-                width: 80px;
+            .number-input-container:focus-within {
+                border-color: #3b82f6;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            }
+            
+            .number-input-container input[type="number"] {
+                width: 50px;
                 padding: 6px 8px;
-                border: 1px solid #ddd;
-                border-radius: 4px;
+                border: none;
+                background: transparent;
                 font-size: 14px;
+                font-weight: 500;
+                color: #374151;
+                text-align: center;
+                outline: none;
             }
             
-            .seeker-setting-row input[type="checkbox"] {
+            .input-unit {
+                font-size: 12px;
+                color: #6b7280;
+                font-weight: 500;
+            }
+            
+            /* Modern Toggle Switches */
+            .toggle-switch {
+                position: relative;
+                display: inline-block;
+            }
+            
+            .toggle-input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+                position: absolute;
+            }
+            
+            .toggle-label {
+                position: relative;
+                display: inline-block;
+                width: 44px;
+                height: 24px;
+                background: #d1d5db;
+                border-radius: 12px;
+                cursor: pointer;
+                transition: all 0.3s ease;
                 margin: 0;
             }
             
-            .seeker-shortcuts-list {
+            .toggle-slider {
+                position: absolute;
+                content: "";
+                height: 20px;
+                width: 20px;
+                left: 2px;
+                top: 2px;
+                background: white;
+                border-radius: 50%;
+                transition: all 0.3s ease;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            }
+            
+            .toggle-input:checked + .toggle-label {
+                background: #3b82f6;
+            }
+            
+            .toggle-input:checked + .toggle-label .toggle-slider {
+                transform: translateX(20px);
+            }
+            
+            .toggle-input:focus + .toggle-label {
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+            }
+            
+            /* Shortcuts Section */
+            .seeker-shortcuts-section {
+                margin-bottom: 20px;
+            }
+            
+            .seeker-shortcuts-grid {
                 display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
                 gap: 8px;
             }
             
@@ -310,85 +494,132 @@ class SettingsOverlay {
                 align-items: center;
                 justify-content: space-between;
                 padding: 8px 12px;
-                background: #f8f9fa;
-                border-radius: 6px;
-                border: 1px solid #e5e5e5;
+                background: #f8fafc;
+                border-radius: 8px;
+                border: 1px solid #e5e7eb;
+                transition: all 0.2s ease;
+            }
+            
+            .seeker-shortcut-item:hover {
+                background: #f1f5f9;
+                border-color: #d1d5db;
             }
             
             .shortcut-key {
-                font-family: 'Monaco', 'Consolas', monospace;
-                background: #333;
+                font-family: 'Monaco', 'Consolas', 'SF Mono', monospace;
+                background: #374151;
                 color: white;
                 padding: 4px 8px;
-                border-radius: 4px;
-                font-size: 12px;
+                border-radius: 6px;
+                font-size: 11px;
                 font-weight: 600;
+                min-width: fit-content;
+                text-align: center;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
             }
             
             .shortcut-desc {
-                font-size: 14px;
-                color: #666;
+                font-size: 13px;
+                color: #6b7280;
+                margin-left: 8px;
+                flex: 1;
             }
             
+            /* About Section */
             .seeker-about-info {
                 font-size: 14px;
                 line-height: 1.5;
-                color: #666;
+                color: #6b7280;
+            }
+            
+            .about-item {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 8px;
+            }
+            
+            .about-item strong {
+                color: #374151;
+            }
+            
+            .version-badge {
+                background: #3b82f6;
+                color: white;
+                padding: 2px 8px;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: 600;
             }
             
             .seeker-about-info p {
-                margin: 0 0 8px 0;
+                margin: 0 0 12px 0;
             }
             
             .seeker-platform-status {
-                margin-top: 16px;
-                padding: 12px;
-                background: #f0f9ff;
-                border: 1px solid #bae6fd;
-                border-radius: 6px;
-                font-family: monospace;
-                font-size: 13px;
+                margin-top: 12px;
+                padding: 10px 12px;
+                background: #ecfdf5;
+                border: 1px solid #a7f3d0;
+                border-radius: 8px;
+                font-family: 'Monaco', 'Consolas', 'SF Mono', monospace;
+                font-size: 12px;
+                color: #047857;
             }
             
+            /* Footer */
             .seeker-settings-footer {
                 display: flex;
-                gap: 12px;
+                gap: 8px;
                 justify-content: flex-end;
-                padding: 20px 24px;
-                border-top: 1px solid #e5e5e5;
-                background: #f8f9fa;
+                padding: 16px 24px;
+                border-top: 1px solid #e5e7eb;
+                background: #f8fafc;
+                flex-shrink: 0;
             }
             
             .seeker-btn {
-                padding: 10px 20px;
-                border-radius: 6px;
-                font-size: 14px;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding: 8px 16px;
+                border-radius: 8px;
+                font-size: 13px;
                 font-weight: 500;
                 cursor: pointer;
                 transition: all 0.2s ease;
                 border: none;
+                outline: none;
+            }
+            
+            .seeker-btn:focus {
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
             }
             
             .seeker-btn-primary {
-                background: #007AFF;
+                background: #3b82f6;
                 color: white;
             }
             
             .seeker-btn-primary:hover {
-                background: #0056CC;
+                background: #2563eb;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
             }
             
             .seeker-btn-secondary {
-                background: transparent;
-                color: #666;
-                border: 1px solid #ddd;
+                background: white;
+                color: #6b7280;
+                border: 1px solid #d1d5db;
             }
             
             .seeker-btn-secondary:hover {
-                background: #f5f5f5;
-                color: #333;
+                background: #f9fafb;
+                color: #374151;
+                border-color: #9ca3af;
             }
             
+            /* Animations */
             @keyframes fadeIn {
                 from { opacity: 0; }
                 to { opacity: 1; }
@@ -397,7 +628,7 @@ class SettingsOverlay {
             @keyframes slideIn {
                 from { 
                     opacity: 0;
-                    transform: scale(0.9) translateY(-20px); 
+                    transform: scale(0.95) translateY(-10px); 
                 }
                 to { 
                     opacity: 1;
@@ -405,10 +636,153 @@ class SettingsOverlay {
                 }
             }
             
+            /* Dark Theme */
+            .seeker-dark-theme {
+                background: #1f2937 !important;
+                color: #f9fafb !important;
+            }
+            
+            .seeker-dark-theme .seeker-settings-header {
+                background: linear-gradient(135deg, #374151 0%, #1f2937 100%) !important;
+                border-bottom-color: #374151 !important;
+            }
+            
+            .seeker-dark-theme .seeker-settings-header h2 {
+                color: #f9fafb !important;
+            }
+            
+            .seeker-dark-theme .seeker-settings-close {
+                color: #9ca3af !important;
+            }
+            
+            .seeker-dark-theme .seeker-settings-close:hover {
+                background: rgba(255, 255, 255, 0.1) !important;
+                color: #f3f4f6 !important;
+            }
+            
+            .seeker-dark-theme .seeker-settings-footer {
+                background: #374151 !important;
+                border-top-color: #4b5563 !important;
+            }
+            
+            .seeker-dark-theme .seeker-settings-section h3 {
+                color: #f9fafb !important;
+                border-bottom-color: #60a5fa !important;
+            }
+            
+            .seeker-dark-theme .section-icon {
+                color: #60a5fa !important;
+            }
+            
+            .seeker-dark-theme .setting-info label {
+                color: #e5e7eb !important;
+            }
+            
+            .seeker-dark-theme .setting-desc {
+                color: #9ca3af !important;
+            }
+            
+            .seeker-dark-theme .number-input-container {
+                background: #374151 !important;
+                border-color: #4b5563 !important;
+            }
+            
+            .seeker-dark-theme .number-input-container:focus-within {
+                border-color: #60a5fa !important;
+                box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+            }
+            
+            .seeker-dark-theme .number-input-container input[type="number"] {
+                color: #f9fafb !important;
+            }
+            
+            .seeker-dark-theme .input-unit {
+                color: #9ca3af !important;
+            }
+            
+            .seeker-dark-theme .toggle-label {
+                background: #4b5563 !important;
+            }
+            
+            .seeker-dark-theme .toggle-input:checked + .toggle-label {
+                background: #60a5fa !important;
+            }
+            
+            .seeker-dark-theme .toggle-input:focus + .toggle-label {
+                box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2) !important;
+            }
+            
+            .seeker-dark-theme .seeker-shortcut-item {
+                background: #374151 !important;
+                border-color: #4b5563 !important;
+            }
+            
+            .seeker-dark-theme .seeker-shortcut-item:hover {
+                background: #4b5563 !important;
+                border-color: #6b7280 !important;
+            }
+            
+            .seeker-dark-theme .shortcut-key {
+                background: #1f2937 !important;
+                color: #f9fafb !important;
+            }
+            
+            .seeker-dark-theme .shortcut-desc {
+                color: #9ca3af !important;
+            }
+            
+            .seeker-dark-theme .seeker-about-info {
+                color: #9ca3af !important;
+            }
+            
+            .seeker-dark-theme .about-item strong {
+                color: #e5e7eb !important;
+            }
+            
+            .seeker-dark-theme .version-badge {
+                background: #60a5fa !important;
+            }
+            
+            .seeker-dark-theme .seeker-platform-status {
+                background: #064e3b !important;
+                border-color: #047857 !important;
+                color: #a7f3d0 !important;
+            }
+            
+            .seeker-dark-theme .seeker-btn-primary {
+                background: #60a5fa !important;
+            }
+            
+            .seeker-dark-theme .seeker-btn-primary:hover {
+                background: #3b82f6 !important;
+                box-shadow: 0 4px 12px rgba(96, 165, 250, 0.3) !important;
+            }
+            
+            .seeker-dark-theme .seeker-btn-secondary {
+                background: #374151 !important;
+                color: #9ca3af !important;
+                border-color: #4b5563 !important;
+            }
+            
+            .seeker-dark-theme .seeker-btn-secondary:hover {
+                background: #4b5563 !important;
+                color: #e5e7eb !important;
+                border-color: #6b7280 !important;
+            }
+            
+            .seeker-dark-theme .seeker-btn:focus {
+                box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2) !important;
+            }
+
+            /* Responsive Design */
             @media (max-width: 640px) {
+                .seeker-settings-overlay {
+                    padding: 10px;
+                }
+                
                 .seeker-settings-panel {
-                    width: 95%;
-                    max-height: 90vh;
+                    max-height: calc(100vh - 20px);
+                    border-radius: 12px;
                 }
                 
                 .seeker-settings-header,
@@ -420,17 +794,42 @@ class SettingsOverlay {
                 .seeker-setting-row {
                     flex-direction: column;
                     align-items: flex-start;
-                    gap: 8px;
+                    gap: 6px;
+                    padding: 8px 0;
                 }
                 
-                .seeker-shortcuts-list {
+                .setting-info {
+                    width: 100%;
+                }
+                
+                .toggle-switch {
+                    align-self: flex-end;
+                }
+                
+                .number-input-container {
+                    align-self: flex-end;
+                }
+                
+                .seeker-shortcuts-grid {
+                    grid-template-columns: 1fr;
                     gap: 6px;
                 }
                 
                 .seeker-shortcut-item {
-                    padding: 6px 8px;
+                    padding: 8px 10px;
                 }
                 
+                .seeker-settings-footer {
+                    gap: 8px;
+                }
+                
+                .seeker-btn {
+                    flex: 1;
+                    justify-content: center;
+                }
+            }
+            
+            @media (max-width: 480px) {
                 .seeker-settings-footer {
                     flex-direction: column;
                 }
@@ -742,6 +1141,7 @@ class SettingsOverlay {
      */
     show() {
         this.updateUI(); // Refresh UI with current settings
+        this.applyTheme(); // Ensure theme is applied
         this.overlay.classList.add('show');
         this.isVisible = true;
         
@@ -817,6 +1217,26 @@ class SettingsOverlay {
      */
     isOverlayVisible() {
         return this.isVisible;
+    }
+
+    /**
+     * Apply theme based on system preference
+     */
+    applyTheme() {
+        if (!this.overlay) return;
+        
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const panel = this.overlay.querySelector('.seeker-settings-panel');
+        
+        if (panel) {
+            if (prefersDark) {
+                panel.classList.add('seeker-dark-theme');
+            } else {
+                panel.classList.remove('seeker-dark-theme');
+            }
+        }
+        
+        logger.debug('Theme applied:', prefersDark ? 'dark' : 'light');
     }
 
     /**
