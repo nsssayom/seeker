@@ -179,21 +179,35 @@ class ParamountPlatform {
             if (event.code === 'Space' || event.key === ' ') {
                 // Check if we're not in an input field
                 const activeElement = document.activeElement;
-                if (!activeElement || 
-                    (activeElement.tagName !== 'INPUT' && 
-                     activeElement.tagName !== 'TEXTAREA' && 
-                     !activeElement.contentEditable)) {
-                    
-                    // Prevent default scrolling behavior
+                const isInputElement = activeElement && (
+                    activeElement.tagName === 'INPUT' || 
+                    activeElement.tagName === 'TEXTAREA' || 
+                    activeElement.contentEditable === 'true' ||
+                    activeElement.getAttribute('role') === 'textbox'
+                );
+                
+                if (!isInputElement) {
+                    // Aggressively prevent default scrolling behavior
                     event.preventDefault();
                     event.stopPropagation();
+                    event.stopImmediatePropagation();
+                    
+                    // Blur any focused element that might capture space for scrolling
+                    if (activeElement && activeElement !== document.body && 
+                        typeof activeElement.blur === 'function') {
+                        activeElement.blur();
+                    }
+                    
                     logger.platform('paramount', 'Prevented space scroll, allowing media control');
+                    return false;
                 }
             }
         };
 
-        // Add event listener with high priority (capture phase)
-        document.addEventListener('keydown', spaceHandler, true);
+        // Add multiple event listeners with different priorities to ensure we catch it
+        document.addEventListener('keydown', spaceHandler, true);  // Capture phase
+        document.addEventListener('keypress', spaceHandler, true); // Also prevent keypress
+        window.addEventListener('keydown', spaceHandler, true);    // Window level
         
         // Store for cleanup
         this._spaceHandler = spaceHandler;
@@ -327,6 +341,8 @@ class ParamountPlatform {
         // Remove space handler if it exists
         if (this._spaceHandler) {
             document.removeEventListener('keydown', this._spaceHandler, true);
+            document.removeEventListener('keypress', this._spaceHandler, true);
+            window.removeEventListener('keydown', this._spaceHandler, true);
             delete this._spaceHandler;
         }
         

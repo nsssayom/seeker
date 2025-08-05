@@ -108,8 +108,8 @@ class KeyboardHandler {
         document.addEventListener('keydown', this.handleKeyDown.bind(this), true);
         document.addEventListener('keyup', this.handleKeyUp.bind(this), true);
         
-        // Prevent conflicts with platform shortcuts
-        document.addEventListener('keydown', this.preventPlatformConflicts.bind(this), false);
+        // Prevent conflicts with platform shortcuts (using capture phase for higher priority)
+        document.addEventListener('keydown', this.preventPlatformConflicts.bind(this), true);
     }
 
     /**
@@ -189,17 +189,28 @@ class KeyboardHandler {
             event.stopPropagation();
             logger.debug(`Prevented Paramount+ conflict for key: ${key}`);
             
-            // Special handling for Space key to prevent page scroll
+            // Extra aggressive handling for Space key to prevent page scroll
             if (key === ' ') {
                 event.stopImmediatePropagation();
                 
                 // Additional prevention for Paramount+ page scroll
                 const activeElement = document.activeElement;
-                if (activeElement && activeElement.tagName !== 'INPUT' && activeElement.tagName !== 'TEXTAREA') {
-                    // Temporarily blur any focused element that might capture space
-                    if (activeElement.blur && typeof activeElement.blur === 'function') {
+                const isInputElement = activeElement && (
+                    activeElement.tagName === 'INPUT' || 
+                    activeElement.tagName === 'TEXTAREA' ||
+                    activeElement.contentEditable === 'true' ||
+                    activeElement.getAttribute('role') === 'textbox'
+                );
+                
+                if (!isInputElement) {
+                    // Blur any focused element that might capture space for scrolling
+                    if (activeElement && activeElement !== document.body && 
+                        typeof activeElement.blur === 'function') {
                         activeElement.blur();
                     }
+                    
+                    // Force return false to ensure no further processing
+                    return false;
                 }
             }
         }
