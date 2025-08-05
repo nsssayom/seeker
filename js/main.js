@@ -102,16 +102,13 @@ class SeekerExtension {
     async initializePlatformIntegration() {
         const hostname = DOMUtils.getHostname();
         
-        // Determine which platform integration to use
+        // Currently only supports Paramount+
         if (hostname.includes('paramountplus.com')) {
             this.platformIntegration = new window.ParamountPlatform();
-        } else {
-            this.platformIntegration = new window.GenericPlatform();
-        }
-        
-        if (this.platformIntegration) {
             this.platformIntegration.initialize();
             logger.debug(`Platform integration initialized: ${this.platformIntegration.name}`);
+        } else {
+            logger.debug('Platform not supported yet');
         }
     }
 

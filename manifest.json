@@ -9,28 +9,12 @@
     "scripting"
   ],
   "host_permissions": [
-    "https://*.paramountplus.com/*",
-    "https://*.hulu.com/*",
-    "https://*.disneyplus.com/*",
-    "https://*.amazon.com/*",
-    "https://*.hbomax.com/*",
-    "https://*.max.com/*",
-    "https://*.peacocktv.com/*",
-    "https://*.appletv.com/*",
-    "https://*.tubi.tv/*"
+    "https://*.paramountplus.com/*"
   ],
   "content_scripts": [
     {
       "matches": [
-        "https://*.paramountplus.com/*",
-        "https://*.hulu.com/*",
-        "https://*.disneyplus.com/*",
-        "https://*.amazon.com/*",
-        "https://*.hbomax.com/*",
-        "https://*.max.com/*",
-        "https://*.peacocktv.com/*",
-        "https://*.appletv.com/*",
-        "https://*.tubi.tv/*"
+        "https://*.paramountplus.com/*"
       ],
       "js": [
         "js/utils/logger.js",
@@ -40,7 +24,6 @@
         "js/core/media-controller.js",
         "js/core/keyboard-handler.js",
         "js/platforms/paramount.js",
-        "js/platforms/generic.js",
         "js/ui/notification.js",
         "js/ui/settings-overlay.js",
         "js/main.js"
