@@ -5,42 +5,21 @@
 class MediaController {
     constructor() {
         this.currentPlayer = null;
-        this.settings = {
-            seekAmount: 10, // seconds
-            volumeStep: 0.1, // 10%
-            enableNotifications: true,
-            enableVolumeControl: true,
-            enablePlaybackControl: true,
-            enableSeekPreview: false
-        };
+        this.config = window.SeekerConfig;
         
-        this.loadSettings();
+        // Initialize with config defaults
+        this.initializeSettings();
     }
 
     /**
-     * Load settings from storage
+     * Initialize settings with config
      */
-    async loadSettings() {
-        try {
-            const stored = await chrome.storage.sync.get('seekerSettings');
-            if (stored.seekerSettings) {
-                this.settings = { ...this.settings, ...stored.seekerSettings };
-                logger.debug('Settings loaded:', this.settings);
-            }
-        } catch (error) {
-            logger.warn('Could not load settings:', error);
-        }
-    }
-
-    /**
-     * Save settings to storage
-     */
-    async saveSettings() {
-        try {
-            await chrome.storage.sync.set({ seekerSettings: this.settings });
-            logger.debug('Settings saved:', this.settings);
-        } catch (error) {
-            logger.warn('Could not save settings:', error);
+    async initializeSettings() {
+        if (this.config) {
+            await this.config.waitForLoad();
+            logger.debug('MediaController initialized with config');
+        } else {
+            logger.warn('SeekerConfig not available, using fallback');
         }
     }
 
@@ -63,9 +42,12 @@ class MediaController {
 
     /**
      * Seek forward by specified amount
-     * @param {number} amount - Seconds to seek forward (default: setting value)
+     * @param {number} amount - Seconds to seek forward (default: config value)
      */
-    seekForward(amount = this.settings.seekAmount) {
+    seekForward(amount = null) {
+        if (amount === null) {
+            amount = this.config ? this.config.getSeekAmounts().arrow : 5;
+        }
         if (!this.canSeek()) return false;
 
         const video = this.currentPlayer.video;
@@ -74,7 +56,7 @@ class MediaController {
         video.currentTime = newTime;
         logger.debug(`Seeked forward ${amount}s to ${newTime.toFixed(2)}s`);
         
-        if (this.settings.enableNotifications) {
+        if (this.config && this.config.get('enableNotifications', true)) {
             this.showSeekNotification(`+${amount}s`, newTime);
         }
         
@@ -83,9 +65,12 @@ class MediaController {
 
     /**
      * Seek backward by specified amount
-     * @param {number} amount - Seconds to seek backward (default: setting value)
+     * @param {number} amount - Seconds to seek backward (default: config value)
      */
-    seekBackward(amount = this.settings.seekAmount) {
+    seekBackward(amount = null) {
+        if (amount === null) {
+            amount = this.config ? this.config.getSeekAmounts().arrow : 5;
+        }
         if (!this.canSeek()) return false;
 
         const video = this.currentPlayer.video;
@@ -94,7 +79,7 @@ class MediaController {
         video.currentTime = newTime;
         logger.debug(`Seeked backward ${amount}s to ${newTime.toFixed(2)}s`);
         
-        if (this.settings.enableNotifications) {
+        if (this.config && this.config.get('enableNotifications', true)) {
             this.showSeekNotification(`-${amount}s`, newTime);
         }
         
@@ -105,14 +90,16 @@ class MediaController {
      * Seek forward by extended amount (2x the normal seek amount)
      */
     seekForwardExtended() {
-        return this.seekForward(this.settings.seekAmount * 2);
+        const extendedAmount = this.config ? this.config.getSeekAmounts().extended : 10;
+        return this.seekForward(extendedAmount);
     }
 
     /**
      * Seek backward by extended amount (2x the normal seek amount)
      */
     seekBackwardExtended() {
-        return this.seekBackward(this.settings.seekAmount * 2);
+        const extendedAmount = this.config ? this.config.getSeekAmounts().extended : 10;
+        return this.seekBackward(extendedAmount);
     }
 
     /**
@@ -128,7 +115,7 @@ class MediaController {
         video.currentTime = newTime;
         logger.debug(`Seeked to ${percentage}% (${newTime.toFixed(2)}s)`);
         
-        if (this.settings.enableNotifications) {
+        if (this.config && this.config.get('enableNotifications', true)) {
             this.showSeekNotification(`${percentage}%`, newTime);
         }
         
@@ -146,7 +133,7 @@ class MediaController {
         if (video.paused) {
             video.play().then(() => {
                 logger.debug('Video played');
-                if (this.settings.enableNotifications) {
+                if (this.config && this.config.get('enableNotifications', true)) {
                     this.showPlaybackNotification('Play');
                 }
             }).catch(error => {
@@ -155,7 +142,7 @@ class MediaController {
         } else {
             video.pause();
             logger.debug('Video paused');
-            if (this.settings.enableNotifications) {
+            if (this.config && this.config.get('enableNotifications', true)) {
                 this.showPlaybackNotification('Pause');
             }
         }
@@ -165,9 +152,12 @@ class MediaController {
 
     /**
      * Increase volume
-     * @param {number} step - Volume step (default: setting value)
+     * @param {number} step - Volume step (default: config value)
      */
-    volumeUp(step = this.settings.volumeStep) {
+    volumeUp(step = null) {
+        if (step === null) {
+            step = this.config ? this.config.get('volumeStep', 0.1) : 0.1;
+        }
         if (!this.canControlVolume()) return false;
 
         const video = this.currentPlayer.video;
@@ -176,7 +166,7 @@ class MediaController {
         video.volume = newVolume;
         logger.debug(`Volume increased to ${(newVolume * 100).toFixed(0)}%`);
         
-        if (this.settings.enableNotifications) {
+        if (this.config && this.config.get('enableNotifications', true)) {
             this.showVolumeNotification(newVolume);
         }
         
@@ -185,9 +175,12 @@ class MediaController {
 
     /**
      * Decrease volume
-     * @param {number} step - Volume step (default: setting value)
+     * @param {number} step - Volume step (default: config value)
      */
-    volumeDown(step = this.settings.volumeStep) {
+    volumeDown(step = null) {
+        if (step === null) {
+            step = this.config ? this.config.get('volumeStep', 0.1) : 0.1;
+        }
         if (!this.canControlVolume()) return false;
 
         const video = this.currentPlayer.video;
@@ -196,7 +189,7 @@ class MediaController {
         video.volume = newVolume;
         logger.debug(`Volume decreased to ${(newVolume * 100).toFixed(0)}%`);
         
-        if (this.settings.enableNotifications) {
+        if (this.config && this.config.get('enableNotifications', true)) {
             this.showVolumeNotification(newVolume);
         }
         
@@ -214,7 +207,7 @@ class MediaController {
         
         logger.debug(`Video ${video.muted ? 'muted' : 'unmuted'}`);
         
-        if (this.settings.enableNotifications) {
+        if (this.config && this.config.get('enableNotifications', true)) {
             this.showVolumeNotification(video.muted ? 0 : video.volume, video.muted);
         }
         
@@ -236,7 +229,7 @@ class MediaController {
             if (captionsButton) {
                 captionsButton.click();
                 logger.debug('Clicked platform captions button');
-                if (this.settings.enableNotifications) {
+                if (this.config && this.config.get('enableNotifications', true)) {
                     window.SeekerNotification?.showInfo('Captions', 'Toggled via platform controls');
                 }
                 return true;
@@ -259,12 +252,12 @@ class MediaController {
             // Enable the first available track
             tracks[0].mode = 'showing';
             logger.debug('Enabled captions');
-            if (this.settings.enableNotifications) {
+            if (this.config && this.config.get('enableNotifications', true)) {
                 window.SeekerNotification?.showInfo('Captions', 'Enabled');
             }
         } else {
             logger.debug('Disabled captions');
-            if (this.settings.enableNotifications) {
+            if (this.config && this.config.get('enableNotifications', true)) {
                 window.SeekerNotification?.showInfo('Captions', 'Disabled');
             }
         }
@@ -366,7 +359,7 @@ class MediaController {
     canControlPlayback() {
         return this.currentPlayer && 
                this.currentPlayer.video && 
-               this.settings.enablePlaybackControl;
+               (this.config ? this.config.get('enablePlaybackControl', true) : true);
     }
 
     /**
@@ -376,7 +369,7 @@ class MediaController {
     canControlVolume() {
         return this.currentPlayer && 
                this.currentPlayer.video && 
-               this.settings.enableVolumeControl;
+               (this.config ? this.config.get('enableVolumeControl', true) : true);
     }
 
     /**
@@ -471,8 +464,9 @@ class MediaController {
      * @param {Object} newSettings - New settings to merge
      */
     updateSettings(newSettings) {
-        this.settings = { ...this.settings, ...newSettings };
-        this.saveSettings();
+        if (this.config) {
+            this.config.updateSettings(newSettings);
+        }
     }
 
     /**
@@ -480,6 +474,6 @@ class MediaController {
      * @returns {Object} Current settings
      */
     getSettings() {
-        return { ...this.settings };
+        return this.config ? this.config.getSettings() : {};
     }
 }

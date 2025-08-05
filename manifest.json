@@ -35,6 +35,7 @@
       "js": [
         "js/utils/logger.js",
         "js/utils/dom-utils.js",
+        "js/utils/config.js",
         "js/core/player-detector.js",
         "js/core/media-controller.js",
         "js/core/keyboard-handler.js",

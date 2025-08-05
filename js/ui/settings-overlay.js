@@ -6,9 +6,9 @@ class SettingsOverlay {
     constructor(mediaController, keyboardHandler) {
         this.mediaController = mediaController;
         this.keyboardHandler = keyboardHandler;
+        this.config = window.SeekerConfig;
         this.overlay = null;
         this.isVisible = false;
-        this.settings = {};
         this.platformUpdateInterval = null;
         
         // Ensure dependencies are available
@@ -25,7 +25,7 @@ class SettingsOverlay {
         this.createOverlay();
         this.setupStyles();
         this.setupEventListeners();
-        this.loadSettings();
+        this.initializeSettings();
     }
 
     /**
@@ -478,7 +478,9 @@ class SettingsOverlay {
         if (seekAmountInput) {
             seekAmountInput.addEventListener('input', (event) => {
                 const value = parseInt(event.target.value) || 5;
-                this.settings.seekAmount = value;
+                if (this.config) {
+                    this.config.set('seekAmount', value);
+                }
                 this.updateShortcutDescriptions();
             });
         }
@@ -487,7 +489,9 @@ class SettingsOverlay {
         if (volumeStepInput) {
             volumeStepInput.addEventListener('input', (event) => {
                 const value = (parseInt(event.target.value) || 10) / 100;
-                this.settings.volumeStep = value;
+                if (this.config) {
+                    this.config.set('volumeStep', value);
+                }
                 this.updateShortcutDescriptions();
             });
         }
@@ -510,33 +514,16 @@ class SettingsOverlay {
     }
 
     /**
-     * Load settings from storage and update UI
+     * Initialize settings with config system
      */
-    async loadSettings() {
-        try {
-            const stored = await chrome.storage.sync.get('seekerSettings');
-            this.settings = stored.seekerSettings || this.getDefaultSettings();
-            this.updateUI();
-        } catch (error) {
-            logger.warn('Could not load settings, using defaults:', error);
-            this.settings = this.getDefaultSettings();
-            this.updateUI();
+    async initializeSettings() {
+        if (this.config) {
+            await this.config.waitForLoad();
+            logger.debug('SettingsOverlay initialized with config');
+        } else {
+            logger.warn('SeekerConfig not available in SettingsOverlay');
         }
-    }
-
-    /**
-     * Get default settings
-     * @returns {Object} Default settings
-     */
-    getDefaultSettings() {
-        return {
-            seekAmount: 5,  // Default to 5 seconds
-            volumeStep: 0.1,
-            enableNotifications: true,
-            enableVolumeControl: true,
-            enablePlaybackControl: true,
-            enableSeekPreview: false
-        };
+        this.updateUI();
     }
 
     /**
@@ -556,12 +543,14 @@ class SettingsOverlay {
         const seekPreviewCheckbox = this.overlay.querySelector('#enable-seek-preview');
         const platformStatus = this.overlay.querySelector('#current-platform');
 
-        if (seekAmountInput) seekAmountInput.value = this.settings.seekAmount;
-        if (volumeStepInput) volumeStepInput.value = Math.round(this.settings.volumeStep * 100);
-        if (notificationsCheckbox) notificationsCheckbox.checked = this.settings.enableNotifications;
-        if (volumeControlCheckbox) volumeControlCheckbox.checked = this.settings.enableVolumeControl;
-        if (playbackControlCheckbox) playbackControlCheckbox.checked = this.settings.enablePlaybackControl;
-        if (seekPreviewCheckbox) seekPreviewCheckbox.checked = this.settings.enableSeekPreview;
+        if (this.config) {
+            if (seekAmountInput) seekAmountInput.value = this.config.get('seekAmount', 5);
+            if (volumeStepInput) volumeStepInput.value = Math.round(this.config.get('volumeStep', 0.1) * 100);
+            if (notificationsCheckbox) notificationsCheckbox.checked = this.config.get('enableNotifications', true);
+            if (volumeControlCheckbox) volumeControlCheckbox.checked = this.config.get('enableVolumeControl', true);
+            if (playbackControlCheckbox) playbackControlCheckbox.checked = this.config.get('enablePlaybackControl', true);
+            if (seekPreviewCheckbox) seekPreviewCheckbox.checked = this.config.get('enableSeekPreview', false);
+        }
 
         // Update platform status
         if (platformStatus) {
@@ -590,34 +579,33 @@ class SettingsOverlay {
         const extendedSeekDesc = this.overlay.querySelector('#extended-seek-desc');
         const volumeStepDesc = this.overlay.querySelector('#volume-step-desc');
 
-        logger.debug('Updating shortcut descriptions with settings:', this.settings);
+        if (this.config) {
+            const seekAmounts = this.config.getSeekAmounts();
+            logger.debug('Updating shortcut descriptions with config:', seekAmounts);
 
-        // Only show detailed descriptions with actual values if settings are loaded
-        if (this.settings && this.settings.seekAmount) {
             if (arrowSeekDesc) {
-                arrowSeekDesc.textContent = `Seek backward/forward (${this.settings.seekAmount}s)`;
+                arrowSeekDesc.textContent = `Seek backward/forward (${seekAmounts.arrow}s)`;
                 logger.debug('Updated arrow seek description');
             } else {
                 logger.warn('Arrow seek description element not found');
             }
 
             if (extendedSeekDesc) {
-                const extendedAmount = this.settings.seekAmount * 2;
-                extendedSeekDesc.textContent = `Fast seek backward/forward (${extendedAmount}s)`;
+                extendedSeekDesc.textContent = `Fast seek backward/forward (${seekAmounts.extended}s)`;
                 logger.debug('Updated extended seek description');
             } else {
                 logger.warn('Extended seek description element not found');
             }
 
             if (volumeStepDesc) {
-                const volumePercent = Math.round(this.settings.volumeStep * 100);
+                const volumePercent = Math.round(this.config.get('volumeStep', 0.1) * 100);
                 volumeStepDesc.textContent = `Volume up/down (${volumePercent}%)`;
                 logger.debug('Updated volume step description');
             } else {
                 logger.warn('Volume step description element not found');
             }
         } else {
-            // Fall back to simple descriptions if settings not loaded
+            // Fall back to simple descriptions if config not available
             if (arrowSeekDesc) {
                 arrowSeekDesc.textContent = 'Seek backward/forward';
             }
@@ -699,8 +687,8 @@ class SettingsOverlay {
             const playbackControlCheckbox = this.overlay.querySelector('#enable-playback-control');
             const seekPreviewCheckbox = this.overlay.querySelector('#enable-seek-preview');
 
-            this.settings = {
-                seekAmount: parseInt(seekAmountInput.value) || 10,
+            const newSettings = {
+                seekAmount: parseInt(seekAmountInput.value) || 5,
                 volumeStep: (parseInt(volumeStepInput.value) || 10) / 100,
                 enableNotifications: notificationsCheckbox.checked,
                 enableVolumeControl: volumeControlCheckbox.checked,
@@ -708,14 +696,16 @@ class SettingsOverlay {
                 enableSeekPreview: seekPreviewCheckbox.checked
             };
 
-            // Save to storage
-            await chrome.storage.sync.set({ seekerSettings: this.settings });
+            // Update config
+            if (this.config) {
+                this.config.updateSettings(newSettings);
+            }
 
             // Update media controller
-            this.mediaController.updateSettings(this.settings);
+            this.mediaController.updateSettings(newSettings);
 
             // Update notification system
-            if (this.settings.enableNotifications) {
+            if (newSettings.enableNotifications) {
                 window.SeekerNotification.enable();
             } else {
                 window.SeekerNotification.disable();
@@ -723,7 +713,7 @@ class SettingsOverlay {
 
             window.SeekerNotification.showInfo('Settings Saved', 'Your preferences have been updated');
             
-            logger.info('Settings saved:', this.settings);
+            logger.info('Settings saved:', newSettings);
             
             // Hide overlay after short delay
             setTimeout(() => {
@@ -740,7 +730,9 @@ class SettingsOverlay {
      * Reset settings to defaults
      */
     resetSettings() {
-        this.settings = this.getDefaultSettings();
+        if (this.config) {
+            this.config.resetToDefaults();
+        }
         this.updateUI();
         window.SeekerNotification.showInfo('Settings Reset', 'Settings restored to defaults');
     }
@@ -749,7 +741,7 @@ class SettingsOverlay {
      * Show overlay
      */
     show() {
-        this.loadSettings(); // Refresh settings
+        this.updateUI(); // Refresh UI with current settings
         this.overlay.classList.add('show');
         this.isVisible = true;
         
@@ -832,7 +824,7 @@ class SettingsOverlay {
      * @returns {Object} Current settings
      */
     getSettings() {
-        return { ...this.settings };
+        return this.config ? this.config.getSettings() : {};
     }
 
     /**

@@ -5,6 +5,7 @@
 class KeyboardHandler {
     constructor(mediaController) {
         this.mediaController = mediaController;
+        this.config = window.SeekerConfig;
         this.isEnabled = true;
         this.keyMappings = new Map();
         this.pressedKeys = new Set();
@@ -56,15 +57,15 @@ class KeyboardHandler {
             category: 'playback'
         });
 
-        // Extended seeking - J/L (double the arrow amount)
+        // Extended seeking - J/L (always double the arrow amount)
         this.keyMappings.set('KeyJ', { 
             action: 'seekBackwardExtended', 
-            description: 'Seek backward (2x arrows)',
+            description: 'Seek backward (double arrow time)',
             category: 'seeking'
         });
         this.keyMappings.set('KeyL', { 
             action: 'seekForwardExtended', 
-            description: 'Seek forward (2x arrows)',
+            description: 'Seek forward (double arrow time)',
             category: 'seeking'
         });
 
@@ -181,11 +182,12 @@ class KeyboardHandler {
      */
     preventParamountConflicts(event, key) {
         // Paramount+ specific keys that need conflict prevention
-        const paramountKeys = [' ', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'KeyK', 'KeyM', 'KeyF', 'KeyC'];
+        const paramountKeys = [' ', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'KeyJ', 'KeyL', 'KeyK', 'KeyM', 'KeyF', 'KeyC'];
         
         if (paramountKeys.includes(key) && this.keyMappings.has(key)) {
             event.preventDefault();
             event.stopPropagation();
+            logger.debug(`Prevented Paramount+ conflict for key: ${key}`);
             
             // Special handling for Space key to prevent page scroll
             if (key === ' ') {
@@ -374,5 +376,13 @@ class KeyboardHandler {
         }
         
         return filtered;
+    }
+
+    /**
+     * Get current seek amounts for display purposes
+     * @returns {Object} Current seek amounts
+     */
+    getSeekAmounts() {
+        return this.config ? this.config.getSeekAmounts() : { arrow: 5, extended: 10, large: 30 };
     }
 }
