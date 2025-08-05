@@ -45,11 +45,11 @@ class KeyboardHandler {
         });
 
         // Play/Pause controls - Space and K
-        this.keyMappings.set(' ', { 
-            action: 'togglePlayPause', 
+        this.keyMappings.set('Space', { 
+            action: 'showPlayPauseNotification', 
             description: 'Play/Pause',
             category: 'playback',
-            preventDefault: true
+            platformHandled: true  // Don't prevent default - let platform handle the actual play/pause
         });
         this.keyMappings.set('KeyK', { 
             action: 'togglePlayPause', 
@@ -105,11 +105,11 @@ class KeyboardHandler {
      * Bind keyboard events
      */
     bindEvents() {
+        // Handle key events first, then prevent conflicts
         document.addEventListener('keydown', this.handleKeyDown.bind(this), true);
         document.addEventListener('keyup', this.handleKeyUp.bind(this), true);
         
-        // Prevent conflicts with platform shortcuts (using capture phase for higher priority)
-        document.addEventListener('keydown', this.preventPlatformConflicts.bind(this), true);
+        // Note: preventPlatformConflicts is handled within handleKeyDown to ensure proper order
     }
 
     /**
@@ -135,8 +135,11 @@ class KeyboardHandler {
         this.pressedKeys.add(key);
         this.lastKeyTime = now;
 
-        // Execute the mapped action
+        // Execute the mapped action FIRST
         this.executeAction(mapping, event);
+        
+        // Then handle platform conflicts if needed
+        this.preventPlatformConflicts(event, key);
         
         logger.debug(`Executed action: ${mapping.action} for key: ${key}`);
     }
@@ -182,37 +185,18 @@ class KeyboardHandler {
      */
     preventParamountConflicts(event, key) {
         // Paramount+ specific keys that need conflict prevention
-        const paramountKeys = [' ', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'KeyJ', 'KeyL', 'KeyK', 'KeyM', 'KeyF', 'KeyC'];
+        const paramountKeys = ['Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'KeyJ', 'KeyL', 'KeyK', 'KeyM', 'KeyF', 'KeyC'];
         
         if (paramountKeys.includes(key) && this.keyMappings.has(key)) {
-            event.preventDefault();
-            event.stopPropagation();
-            logger.debug(`Prevented Paramount+ conflict for key: ${key}`);
+            const mapping = this.keyMappings.get(key);
             
-            // Extra aggressive handling for Space key to prevent page scroll
-            if (key === ' ') {
-                event.stopImmediatePropagation();
-                
-                // Additional prevention for Paramount+ page scroll
-                const activeElement = document.activeElement;
-                const isInputElement = activeElement && (
-                    activeElement.tagName === 'INPUT' || 
-                    activeElement.tagName === 'TEXTAREA' ||
-                    activeElement.contentEditable === 'true' ||
-                    activeElement.getAttribute('role') === 'textbox'
-                );
-                
-                if (!isInputElement) {
-                    // Blur any focused element that might capture space for scrolling
-                    if (activeElement && activeElement !== document.body && 
-                        typeof activeElement.blur === 'function') {
-                        activeElement.blur();
-                    }
-                    
-                    // Force return false to ensure no further processing
-                    return false;
-                }
+            // Don't prevent default for platform-handled keys (like Space)
+            if (!mapping.platformHandled) {
+                event.preventDefault();
+                event.stopPropagation();
             }
+            
+            logger.debug(`Handled Paramount+ conflict for key: ${key}`);
         }
     }
 
@@ -295,8 +279,9 @@ class KeyboardHandler {
             if (typeof this.mediaController[action] === 'function') {
                 const result = this.mediaController[action](...params);
                 
-                if (result) {
+                if (result && !mapping.platformHandled) {
                     // Action was successful, prevent default behavior
+                    // (unless it's platform-handled like space key)
                     event.preventDefault();
                     event.stopPropagation();
                 }

@@ -174,10 +174,9 @@ class ParamountPlatform {
      * Prevent page scroll when space is used for play/pause
      */
     preventPageScrollOnSpace() {
-        const spaceHandler = (event) => {
-            // Only handle space key
+        // Simple scroll prevention only - notifications handled by media controller
+        const scrollPreventionHandler = (event) => {
             if (event.code === 'Space' || event.key === ' ') {
-                // Check if we're not in an input field
                 const activeElement = document.activeElement;
                 const isInputElement = activeElement && (
                     activeElement.tagName === 'INPUT' || 
@@ -187,30 +186,23 @@ class ParamountPlatform {
                 );
                 
                 if (!isInputElement) {
-                    // Aggressively prevent default scrolling behavior
+                    // Only prevent scrolling, let everything else work normally
                     event.preventDefault();
-                    event.stopPropagation();
-                    event.stopImmediatePropagation();
                     
-                    // Blur any focused element that might capture space for scrolling
+                    // Blur focused element to prevent scroll capture
                     if (activeElement && activeElement !== document.body && 
                         typeof activeElement.blur === 'function') {
                         activeElement.blur();
                     }
                     
-                    logger.platform('paramount', 'Prevented space scroll, allowing media control');
-                    return false;
+                    logger.platform('paramount', 'Prevented space scroll');
                 }
             }
         };
 
-        // Add multiple event listeners with different priorities to ensure we catch it
-        document.addEventListener('keydown', spaceHandler, true);  // Capture phase
-        document.addEventListener('keypress', spaceHandler, true); // Also prevent keypress
-        window.addEventListener('keydown', spaceHandler, true);    // Window level
-        
-        // Store for cleanup
-        this._spaceHandler = spaceHandler;
+        // Only handle keypress for scroll prevention
+        document.addEventListener('keypress', scrollPreventionHandler, true);
+        this._spaceHandler = scrollPreventionHandler;
     }
 
     /**
@@ -340,9 +332,7 @@ class ParamountPlatform {
         
         // Remove space handler if it exists
         if (this._spaceHandler) {
-            document.removeEventListener('keydown', this._spaceHandler, true);
             document.removeEventListener('keypress', this._spaceHandler, true);
-            window.removeEventListener('keydown', this._spaceHandler, true);
             delete this._spaceHandler;
         }
         

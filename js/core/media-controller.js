@@ -151,6 +151,33 @@ class MediaController {
     }
 
     /**
+     * Show play/pause notification based on current state
+     * (Used when platform handles play/pause but we want to show notification)
+     */
+    showPlayPauseNotification() {
+        if (!this.canControlPlayback()) return false;
+        if (!this.config || !this.config.get('enableNotifications', true)) return false;
+
+        const video = this.currentPlayer.video;
+        
+        // Capture the CURRENT state before platform handles the action
+        const wasPlaying = !video.paused;
+        
+        // Use a small delay to let platform handler complete first, then show action performed
+        setTimeout(() => {
+            if (wasPlaying) {
+                // Video was playing, so space key paused it
+                this.showPlaybackNotification('Pause');
+            } else {
+                // Video was paused, so space key played it
+                this.showPlaybackNotification('Play');
+            }
+        }, 50); // Slightly longer delay to ensure platform state is updated
+        
+        return true;
+    }
+
+    /**
      * Increase volume
      * @param {number} step - Volume step (default: config value)
      */
@@ -399,7 +426,7 @@ class MediaController {
     showPlaybackNotification(action) {
         if (!window.SeekerNotification) return;
         
-        window.SeekerNotification.show(action, '', 'playback');
+        window.SeekerNotification.showPlaybackNotification(action);
     }
 
     /**
