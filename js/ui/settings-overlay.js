@@ -232,17 +232,17 @@ class SettingsOverlay {
                 </div>
                 
                 <div class="seeker-settings-footer">
+                    <div class="auto-save-status">
+                        <svg viewBox="0 0 24 24" width="14" height="14">
+                            <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                        </svg>
+                        <span>Settings saved automatically</span>
+                    </div>
                     <button class="seeker-btn seeker-btn-secondary" id="reset-settings">
                         <svg viewBox="0 0 24 24" width="16" height="16">
                             <path fill="currentColor" d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
                         </svg>
-                        Reset
-                    </button>
-                    <button class="seeker-btn seeker-btn-primary" id="save-settings">
-                        <svg viewBox="0 0 24 24" width="16" height="16">
-                            <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                        </svg>
-                        Save Changes
+                        Reset to Defaults
                     </button>
                 </div>
             </div>
@@ -570,12 +570,30 @@ class SettingsOverlay {
             /* Footer */
             .seeker-settings-footer {
                 display: flex;
-                gap: 8px;
-                justify-content: flex-end;
+                align-items: center;
+                justify-content: space-between;
                 padding: 16px 24px;
                 border-top: 1px solid #e5e7eb;
                 background: #f8fafc;
                 flex-shrink: 0;
+            }
+            
+            .auto-save-status {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 12px;
+                color: #059669;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+            
+            .auto-save-status.show {
+                opacity: 1;
+            }
+            
+            .auto-save-status svg {
+                color: #059669;
             }
             
             .seeker-btn {
@@ -663,6 +681,14 @@ class SettingsOverlay {
             .seeker-dark-theme .seeker-settings-footer {
                 background: #374151 !important;
                 border-top-color: #4b5563 !important;
+            }
+            
+            .seeker-dark-theme .auto-save-status {
+                color: #10b981 !important;
+            }
+            
+            .seeker-dark-theme .auto-save-status svg {
+                color: #10b981 !important;
             }
             
             .seeker-dark-theme .seeker-settings-section h3 {
@@ -820,20 +846,23 @@ class SettingsOverlay {
                 }
                 
                 .seeker-settings-footer {
+                    flex-direction: column;
                     gap: 8px;
+                    align-items: center;
+                }
+                
+                .auto-save-status {
+                    order: 2;
                 }
                 
                 .seeker-btn {
-                    flex: 1;
+                    order: 1;
+                    width: 100%;
                     justify-content: center;
                 }
             }
             
-            @media (max-width: 480px) {
-                .seeker-settings-footer {
-                    flex-direction: column;
-                }
-            }
+
         `;
         
         DOMUtils.addCSS(styles, 'seeker-settings-styles');
@@ -860,40 +889,14 @@ class SettingsOverlay {
             backdrop.addEventListener('click', () => this.hide());
         }
 
-        // Save button
-        const saveBtn = this.overlay.querySelector('#save-settings');
-        if (saveBtn) {
-            saveBtn.addEventListener('click', () => this.saveSettings());
-        }
-
         // Reset button
         const resetBtn = this.overlay.querySelector('#reset-settings');
         if (resetBtn) {
             resetBtn.addEventListener('click', () => this.resetSettings());
         }
 
-        // Real-time updates for seek amount and volume step
-        const seekAmountInput = this.overlay.querySelector('#seek-amount');
-        if (seekAmountInput) {
-            seekAmountInput.addEventListener('input', (event) => {
-                const value = parseInt(event.target.value) || 5;
-                if (this.config) {
-                    this.config.set('seekAmount', value);
-                }
-                this.updateShortcutDescriptions();
-            });
-        }
-
-        const volumeStepInput = this.overlay.querySelector('#volume-step');
-        if (volumeStepInput) {
-            volumeStepInput.addEventListener('input', (event) => {
-                const value = (parseInt(event.target.value) || 10) / 100;
-                if (this.config) {
-                    this.config.set('volumeStep', value);
-                }
-                this.updateShortcutDescriptions();
-            });
-        }
+        // Auto-save for all inputs
+        this.setupAutoSave();
 
         // Keyboard shortcut to open settings (Ctrl/Cmd + Shift + S)
         document.addEventListener('keydown', (event) => {
@@ -1074,56 +1077,7 @@ class SettingsOverlay {
         }
     }
 
-    /**
-     * Save settings from UI
-     */
-    async saveSettings() {
-        try {
-            const seekAmountInput = this.overlay.querySelector('#seek-amount');
-            const volumeStepInput = this.overlay.querySelector('#volume-step');
-            const notificationsCheckbox = this.overlay.querySelector('#enable-notifications');
-            const volumeControlCheckbox = this.overlay.querySelector('#enable-volume-control');
-            const playbackControlCheckbox = this.overlay.querySelector('#enable-playback-control');
-            const seekPreviewCheckbox = this.overlay.querySelector('#enable-seek-preview');
 
-            const newSettings = {
-                seekAmount: parseInt(seekAmountInput.value) || 5,
-                volumeStep: (parseInt(volumeStepInput.value) || 10) / 100,
-                enableNotifications: notificationsCheckbox.checked,
-                enableVolumeControl: volumeControlCheckbox.checked,
-                enablePlaybackControl: playbackControlCheckbox.checked,
-                enableSeekPreview: seekPreviewCheckbox.checked
-            };
-
-            // Update config
-            if (this.config) {
-                this.config.updateSettings(newSettings);
-            }
-
-            // Update media controller
-            this.mediaController.updateSettings(newSettings);
-
-            // Update notification system
-            if (newSettings.enableNotifications) {
-                window.SeekerNotification.enable();
-            } else {
-                window.SeekerNotification.disable();
-            }
-
-            window.SeekerNotification.showInfo('Settings Saved', 'Your preferences have been updated');
-            
-            logger.info('Settings saved:', newSettings);
-            
-            // Hide overlay after short delay
-            setTimeout(() => {
-                this.hide();
-            }, 1000);
-            
-        } catch (error) {
-            logger.error('Failed to save settings:', error);
-            window.SeekerNotification.showError('Save Failed', 'Could not save settings');
-        }
-    }
 
     /**
      * Reset settings to defaults
@@ -1133,6 +1087,7 @@ class SettingsOverlay {
             this.config.resetToDefaults();
         }
         this.updateUI();
+        this.showAutoSaveFeedback();
         window.SeekerNotification.showInfo('Settings Reset', 'Settings restored to defaults');
     }
 
@@ -1217,6 +1172,99 @@ class SettingsOverlay {
      */
     isOverlayVisible() {
         return this.isVisible;
+    }
+
+    /**
+     * Setup auto-save for all settings inputs
+     */
+    setupAutoSave() {
+        if (!this.overlay) return;
+
+        // Seek amount input
+        const seekAmountInput = this.overlay.querySelector('#seek-amount');
+        if (seekAmountInput) {
+            seekAmountInput.addEventListener('input', (event) => {
+                const value = parseInt(event.target.value) || 5;
+                this.autoSaveSetting('seekAmount', value);
+                this.updateShortcutDescriptions();
+            });
+        }
+
+        // Volume step input
+        const volumeStepInput = this.overlay.querySelector('#volume-step');
+        if (volumeStepInput) {
+            volumeStepInput.addEventListener('input', (event) => {
+                const value = (parseInt(event.target.value) || 10) / 100;
+                this.autoSaveSetting('volumeStep', value);
+                this.updateShortcutDescriptions();
+            });
+        }
+
+        // Toggle switches
+        const toggles = [
+            { id: 'enable-notifications', key: 'enableNotifications' },
+            { id: 'enable-seek-preview', key: 'enableSeekPreview' },
+            { id: 'enable-volume-control', key: 'enableVolumeControl' },
+            { id: 'enable-playback-control', key: 'enablePlaybackControl' }
+        ];
+
+        toggles.forEach(({ id, key }) => {
+            const toggle = this.overlay.querySelector(`#${id}`);
+            if (toggle) {
+                toggle.addEventListener('change', (event) => {
+                    this.autoSaveSetting(key, event.target.checked);
+                });
+            }
+        });
+    }
+
+    /**
+     * Auto-save a single setting
+     */
+    async autoSaveSetting(key, value) {
+        try {
+            // Update config
+            if (this.config) {
+                this.config.set(key, value);
+            }
+
+            // Update media controller
+            const settings = { [key]: value };
+            this.mediaController.updateSettings(settings);
+
+            // Update notification system for relevant settings
+            if (key === 'enableNotifications') {
+                if (value) {
+                    window.SeekerNotification.enable();
+                } else {
+                    window.SeekerNotification.disable();
+                }
+            }
+
+            // Show auto-save feedback
+            this.showAutoSaveFeedback();
+
+            logger.debug('Auto-saved setting:', { [key]: value });
+
+        } catch (error) {
+            logger.error('Failed to auto-save setting:', error);
+            // Could show an error indicator here
+        }
+    }
+
+    /**
+     * Show auto-save feedback
+     */
+    showAutoSaveFeedback() {
+        const status = this.overlay.querySelector('.auto-save-status');
+        if (status) {
+            status.classList.add('show');
+            
+            // Hide after 2 seconds
+            setTimeout(() => {
+                status.classList.remove('show');
+            }, 2000);
+        }
     }
 
     /**
