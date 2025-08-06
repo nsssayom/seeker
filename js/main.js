@@ -41,6 +41,9 @@ class SeekerExtension {
      */
     async initializeComponents() {
         try {
+            // First, ensure config is loaded
+            await this.waitForConfig();
+            
             // Initialize core components
             await this.initializeCore();
             
@@ -59,13 +62,25 @@ class SeekerExtension {
             
             logger.info('Seeker extension initialized successfully');
             
-            // Show initialization notification (respect notification settings, wait for config)
+            // Show initialization notification (config is already loaded)
             this.showInitializationNotification();
             
         } catch (error) {
             logger.error('Failed to initialize components:', error);
             this.scheduleRetry();
         }
+    }
+
+    /**
+     * Wait for config to be loaded
+     */
+    async waitForConfig() {
+        if (!window.SeekerConfig) {
+            throw new Error('SeekerConfig not available');
+        }
+        
+        await window.SeekerConfig.waitForLoad();
+        logger.debug('Config loaded successfully');
     }
 
     /**
@@ -98,7 +113,15 @@ class SeekerExtension {
         const hostname = DOMUtils.getHostname();
         logger.debug(`Initializing platform integration for hostname: ${hostname}`);
         
-        // Support for multiple platforms
+        // Get platform configuration from centralized config
+        const platformConfig = this.config ? this.config.getPlatformConfig(hostname) : null;
+        
+        if (!platformConfig) {
+            logger.debug(`Platform not supported yet for hostname: ${hostname}`);
+            return;
+        }
+        
+        // Support for multiple platforms using centralized config
         if (hostname.includes('paramountplus.com')) {
             this.platformIntegration = new window.ParamountPlatform();
             this.platformIntegration.initialize();
@@ -109,7 +132,7 @@ class SeekerExtension {
             this.platformIntegration.initialize();
             logger.debug(`Platform integration initialized: ${this.platformIntegration.name}`);
         } else {
-            logger.debug(`Platform not supported yet for hostname: ${hostname}`);
+            logger.debug(`Platform integration not yet implemented for: ${platformConfig.name}`);
         }
     }
 
@@ -126,9 +149,10 @@ class SeekerExtension {
             logger.debug('Settings overlay initialized');
         }
 
-        // Notification system is already initialized via its own file
+        // Initialize notification system from config (config is already loaded)
         if (window.SeekerNotification) {
-            logger.debug('Notification system available');
+            await window.SeekerNotification.initializeFromConfig();
+            logger.debug('Notification system initialized');
         }
     }
 
@@ -234,27 +258,11 @@ class SeekerExtension {
     }
 
     /**
-     * Show initialization notification after ensuring config is loaded
+     * Show initialization notification (config is already loaded)
      */
-    async showInitializationNotification() {
-        // Wait for both notification system and config to be ready
-        const waitForSystems = () => {
-            return new Promise((resolve) => {
-                const checkSystems = () => {
-                    if (window.SeekerNotification && window.SeekerConfig && window.SeekerConfig.loaded) {
-                        resolve();
-                    } else {
-                        setTimeout(checkSystems, 50);
-                    }
-                };
-                checkSystems();
-            });
-        };
-        
-        await waitForSystems();
-        
-        // Now safely check config and show notification
-        if (window.SeekerConfig.get('enableNotifications', true)) {
+    showInitializationNotification() {
+        // Config is guaranteed to be loaded at this point
+        if (window.SeekerNotification && window.SeekerConfig.get('enableNotifications', true)) {
             window.SeekerNotification.showInfo(
                 'Seeker Active', 
                 'Keyboard controls enabled'
@@ -265,25 +273,9 @@ class SeekerExtension {
     /**
      * Show player detected notification after ensuring config is loaded
      */
-    async showPlayerDetectedNotification(platform) {
-        // Wait for both notification system and config to be ready
-        const waitForSystems = () => {
-            return new Promise((resolve) => {
-                const checkSystems = () => {
-                    if (window.SeekerNotification && window.SeekerConfig && window.SeekerConfig.loaded) {
-                        resolve();
-                    } else {
-                        setTimeout(checkSystems, 50);
-                    }
-                };
-                checkSystems();
-            });
-        };
-        
-        await waitForSystems();
-        
-        // Now safely check config and show notification
-        if (window.SeekerConfig.get('enableNotifications', true)) {
+    showPlayerDetectedNotification(platform) {
+        // Config is guaranteed to be loaded at this point
+        if (window.SeekerNotification && window.SeekerConfig.get('enableNotifications', true)) {
             window.SeekerNotification.showInfo(
                 'Player Detected',
                 `Connected to ${platform}`
@@ -338,11 +330,19 @@ class SeekerExtension {
         const currentPlayer = this.mediaController ? this.mediaController.getCurrentPlayer() : null;
         const platform = this.platformIntegration ? this.platformIntegration.name : 'Unknown';
         
+        // Get current config values
+        const config = window.SeekerConfig;
+        const notificationsEnabled = config ? config.get('enableNotifications', true) : true;
+        const volumeControlEnabled = config ? config.get('enableVolumeControl', true) : true;
+        const playbackControlEnabled = config ? config.get('enablePlaybackControl', true) : true;
+        
         return {
             initialized: this.isInitialized,
             platform: platform,
             keyboardEnabled: this.keyboardHandler ? this.keyboardHandler.isKeyboardEnabled() : false,
-            notificationsEnabled: window.SeekerNotification ? window.SeekerNotification.isNotificationsEnabled() : false,
+            notificationsEnabled: notificationsEnabled,
+            volumeControlEnabled: volumeControlEnabled,
+            playbackControlEnabled: playbackControlEnabled,
             player: {
                 connected: !!currentPlayer
             },
@@ -378,14 +378,75 @@ class SeekerExtension {
     /**
      * Toggle notifications enabled/disabled
      */
-    toggleNotifications(enabled) {
-        if (window.SeekerNotification) {
-            if (enabled) {
-                window.SeekerNotification.enable();
-            } else {
-                window.SeekerNotification.disable();
+    async toggleNotifications(enabled) {
+        try {
+            // Update config first
+            if (window.SeekerConfig) {
+                window.SeekerConfig.set('enableNotifications', enabled);
+                await window.SeekerConfig.saveSettings();
             }
+
+            // Update notification system
+            if (window.SeekerNotification) {
+                if (enabled) {
+                    window.SeekerNotification.enable();
+                } else {
+                    window.SeekerNotification.disable();
+                }
+            }
+
+            // Update media controller if available
+            if (this.mediaController) {
+                this.mediaController.updateSettings({ enableNotifications: enabled });
+            }
+
             logger.debug(`Notifications ${enabled ? 'enabled' : 'disabled'} via popup`);
+        } catch (error) {
+            logger.error('Failed to toggle notifications:', error);
+        }
+    }
+
+    /**
+     * Toggle volume control enabled/disabled
+     */
+    async toggleVolumeControl(enabled) {
+        try {
+            // Update config first
+            if (window.SeekerConfig) {
+                window.SeekerConfig.set('enableVolumeControl', enabled);
+                await window.SeekerConfig.saveSettings();
+            }
+
+            // Update media controller if available
+            if (this.mediaController) {
+                this.mediaController.updateSettings({ enableVolumeControl: enabled });
+            }
+
+            logger.debug(`Volume control ${enabled ? 'enabled' : 'disabled'} via popup`);
+        } catch (error) {
+            logger.error('Failed to toggle volume control:', error);
+        }
+    }
+
+    /**
+     * Toggle playback control enabled/disabled
+     */
+    async togglePlaybackControl(enabled) {
+        try {
+            // Update config first
+            if (window.SeekerConfig) {
+                window.SeekerConfig.set('enablePlaybackControl', enabled);
+                await window.SeekerConfig.saveSettings();
+            }
+
+            // Update media controller if available
+            if (this.mediaController) {
+                this.mediaController.updateSettings({ enablePlaybackControl: enabled });
+            }
+
+            logger.debug(`Playback control ${enabled ? 'enabled' : 'disabled'} via popup`);
+        } catch (error) {
+            logger.error('Failed to toggle playback control:', error);
         }
     }
 
@@ -426,13 +487,75 @@ class SeekerExtension {
 }
 
 // Initialize extension when script loads
-const seekerExtension = new SeekerExtension();
+let seekerExtension;
 
-// Make extension available globally for debugging
+try {
+    seekerExtension = new SeekerExtension();
+    logger.info('SeekerExtension initialized successfully');
+} catch (error) {
+    logger.error('Failed to initialize SeekerExtension:', error);
+}
+
+// Always make functions available globally, even if extension failed to initialize
 window.SeekerExtension = seekerExtension;
 
-// Export status function for popup communication
-window.getSeekerStatus = () => seekerExtension.getStatus();
-window.showSeekerSettings = () => seekerExtension.showSettings();
-window.setSeekerEnabled = (enabled) => seekerExtension.setEnabled(enabled);
-window.toggleSeekerNotifications = (enabled) => seekerExtension.toggleNotifications(enabled);
+// Export status function for popup communication with fallback
+window.getSeekerStatus = () => {
+    if (seekerExtension) {
+        return seekerExtension.getStatus();
+    }
+    
+    // Fallback status when extension is not initialized
+    const hostname = DOMUtils.getHostname();
+    return {
+        initialized: false,
+        platform: hostname.includes('hulu.com') ? 'Hulu' : 
+                 hostname.includes('paramountplus.com') ? 'Paramount+' : 'Unknown',
+        keyboardEnabled: false,
+        notificationsEnabled: false,
+        player: { connected: false },
+        features: {},
+        version: '1.0.0',
+        error: 'Extension not fully initialized'
+    };
+};
+
+window.showSeekerSettings = () => {
+    if (seekerExtension) {
+        return seekerExtension.showSettings();
+    }
+    console.warn('SeekerExtension not available for settings');
+};
+
+window.setSeekerEnabled = (enabled) => {
+    if (seekerExtension) {
+        return seekerExtension.setEnabled(enabled);
+    }
+    console.warn('SeekerExtension not available for enable/disable');
+};
+
+window.toggleSeekerNotifications = (enabled) => {
+    if (seekerExtension) {
+        return seekerExtension.toggleNotifications(enabled);
+    }
+    console.warn('SeekerExtension not available for notifications toggle');
+};
+
+window.toggleSeekerVolumeControl = (enabled) => {
+    if (seekerExtension) {
+        return seekerExtension.toggleVolumeControl(enabled);
+    }
+    console.warn('SeekerExtension not available for volume control toggle');
+};
+
+window.toggleSeekerPlaybackControl = (enabled) => {
+    if (seekerExtension) {
+        return seekerExtension.togglePlaybackControl(enabled);
+    }
+    console.warn('SeekerExtension not available for playback control toggle');
+};
+
+// Add initialization status check
+window.isSeekerReady = () => {
+    return !!seekerExtension && seekerExtension.isInitialized;
+};

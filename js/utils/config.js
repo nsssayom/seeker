@@ -13,6 +13,58 @@ class ConfigManager {
             enableSeekPreview: false
         };
         
+        // Centralized platform configuration
+        this.supportedPlatforms = {
+            'paramountplus.com': {
+                name: 'Paramount+',
+                hasNativeControls: true,
+                needsConflictPrevention: true,
+                needsScrollPrevention: true
+            },
+            'hulu.com': {
+                name: 'Hulu',
+                hasNativeControls: true,
+                needsConflictPrevention: true,
+                needsScrollPrevention: false
+            },
+            'disneyplus.com': {
+                name: 'Disney+',
+                hasNativeControls: true,
+                needsConflictPrevention: false,
+                needsScrollPrevention: false
+            },
+            'max.com': {
+                name: 'Max',
+                hasNativeControls: true,
+                needsConflictPrevention: false,
+                needsScrollPrevention: false
+            },
+            'amazon.com': {
+                name: 'Prime Video',
+                hasNativeControls: true,
+                needsConflictPrevention: false,
+                needsScrollPrevention: false
+            },
+            'peacocktv.com': {
+                name: 'Peacock',
+                hasNativeControls: true,
+                needsConflictPrevention: false,
+                needsScrollPrevention: false
+            },
+            'appletv.com': {
+                name: 'Apple TV+',
+                hasNativeControls: true,
+                needsConflictPrevention: false,
+                needsScrollPrevention: false
+            },
+            'tubi.tv': {
+                name: 'Tubi',
+                hasNativeControls: true,
+                needsConflictPrevention: false,
+                needsScrollPrevention: false
+            }
+        };
+        
         this.currentSettings = { ...this.defaultSettings };
         this.storageKey = 'seekerSettings';
         this.loaded = false;
@@ -151,6 +203,48 @@ class ConfigManager {
     }
 
     /**
+     * Get supported platform domains
+     * @returns {string[]} Array of supported domain names
+     */
+    getSupportedDomains() {
+        return Object.keys(this.supportedPlatforms);
+    }
+
+    /**
+     * Get platform configuration for a domain
+     * @param {string} hostname - The hostname to check
+     * @returns {Object|null} Platform configuration or null if not supported
+     */
+    getPlatformConfig(hostname) {
+        for (const domain of Object.keys(this.supportedPlatforms)) {
+            if (hostname.includes(domain)) {
+                return {
+                    domain,
+                    ...this.supportedPlatforms[domain]
+                };
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Check if a hostname is supported
+     * @param {string} hostname - The hostname to check
+     * @returns {boolean} Whether the platform is supported
+     */
+    isSupportedPlatform(hostname) {
+        return this.getPlatformConfig(hostname) !== null;
+    }
+
+    /**
+     * Get all platform configurations
+     * @returns {Object} All platform configurations
+     */
+    getAllPlatforms() {
+        return { ...this.supportedPlatforms };
+    }
+
+    /**
      * Get version information
      * @returns {Object} Version and configuration info
      */
@@ -160,7 +254,8 @@ class ConfigManager {
             storageKey: this.storageKey,
             loaded: this.loaded,
             settingsCount: Object.keys(this.currentSettings).length,
-            defaultsCount: Object.keys(this.defaultSettings).length
+            defaultsCount: Object.keys(this.defaultSettings).length,
+            supportedPlatformsCount: Object.keys(this.supportedPlatforms).length
         };
     }
 }

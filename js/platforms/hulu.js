@@ -38,6 +38,7 @@ class HuluPlatform {
         this.setupSkipHandler();
         this.setupNextEpisodeHandler();
         this.enhanceSeekBar();
+        this.preventPageScrollOnSpace();
         this.injectCustomStyles();
         
         this.isInitialized = true;
@@ -200,6 +201,41 @@ class HuluPlatform {
             event.stopPropagation();
             logger.platform('hulu', 'Seek bar clicked');
         });
+    }
+
+    /**
+     * Prevent page scroll when space is used for play/pause
+     */
+    preventPageScrollOnSpace() {
+        // Similar to Paramount but adapted for Hulu's DOM structure
+        const scrollPreventionHandler = (event) => {
+            if (event.code === 'Space' || event.key === ' ') {
+                const activeElement = document.activeElement;
+                const isInputElement = activeElement && (
+                    activeElement.tagName === 'INPUT' || 
+                    activeElement.tagName === 'TEXTAREA' || 
+                    activeElement.contentEditable === 'true' ||
+                    activeElement.getAttribute('role') === 'textbox'
+                );
+                
+                if (!isInputElement) {
+                    // Only prevent scrolling, let everything else work normally
+                    event.preventDefault();
+                    
+                    // Blur focused element to prevent scroll capture
+                    if (activeElement && activeElement !== document.body && 
+                        typeof activeElement.blur === 'function') {
+                        activeElement.blur();
+                    }
+                    
+                    logger.platform('hulu', 'Prevented space scroll');
+                }
+            }
+        };
+
+        // Only handle keypress for scroll prevention
+        document.addEventListener('keypress', scrollPreventionHandler, true);
+        this._spaceHandler = scrollPreventionHandler;
     }
 
     /**
@@ -369,6 +405,12 @@ class HuluPlatform {
         if (this._nextEpisodeHandler) {
             document.removeEventListener('keydown', this._nextEpisodeHandler);
             delete this._nextEpisodeHandler;
+        }
+        
+        // Remove space handler if it exists
+        if (this._spaceHandler) {
+            document.removeEventListener('keypress', this._spaceHandler);
+            delete this._spaceHandler;
         }
         
         this.isInitialized = false;

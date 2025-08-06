@@ -12,29 +12,18 @@ class SeekerNotification {
         this.createContainer();
         this.setupStyles();
         
-        // Wait for config to load and set initial state
-        this.initializeFromConfig();
+        // Initialize from config will be called by main.js after config is loaded
     }
     
     /**
      * Initialize notification state from config
      */
     async initializeFromConfig() {
-        // Wait for config to be available and loaded
-        const waitForConfig = () => {
-            return new Promise((resolve) => {
-                const checkConfig = () => {
-                    if (window.SeekerConfig && window.SeekerConfig.loaded) {
-                        resolve();
-                    } else {
-                        setTimeout(checkConfig, 50);
-                    }
-                };
-                checkConfig();
-            });
-        };
-        
-        await waitForConfig();
+        // Config should already be loaded when this is called
+        if (!window.SeekerConfig || !window.SeekerConfig.loaded) {
+            logger.warn('SeekerConfig not available or not loaded yet');
+            return;
+        }
         
         // Set initial state from config
         const notificationsEnabled = window.SeekerConfig.get('enableNotifications', true);

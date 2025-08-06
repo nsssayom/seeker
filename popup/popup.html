@@ -9,98 +9,98 @@
 <body>
     <div class="popup-container">
         <header class="popup-header">
-            <div class="logo">
-                <img src="../icons/icon-32.png" alt="Seeker" class="logo-icon">
-                <h1>Seeker</h1>
+            <div class="header-content">
+                <div class="app-section">
+                    <img src="../icons/icon-32.png" alt="Seeker" class="app-icon">
+                    <div class="app-info">
+                        <h1 class="app-name">Seeker</h1>
+                        <span class="app-version">v1.0.0</span>
+                    </div>
+                </div>
+                <div class="platform-section">
+                    <img src="../icons/platforms/paramount.png" alt="Platform" class="platform-icon" id="platform-icon">
+                    <span class="platform-name" id="platform-name">Paramount+</span>
+                </div>
             </div>
-            <div class="version">v1.0.0</div>
         </header>
 
         <main class="popup-main">
             <div class="status-section">
-                <div class="status-indicator">
-                    <div class="status-dot" id="status-dot"></div>
-                    <span class="status-text" id="status-text">Checking...</span>
-                </div>
-                <div class="platform-info" id="platform-info">
-                    <span id="platform-name">Unknown Platform</span>
+                <div class="status-grid">
+                    <div class="status-pill">
+                        <span class="status-label">Notifications</span>
+                        <div class="status-indicator enabled" id="notifications-indicator"></div>
+                    </div>
+                    <div class="status-pill">
+                        <span class="status-label">Keyboard</span>
+                        <div class="status-indicator enabled" id="keyboard-indicator"></div>
+                    </div>
                 </div>
             </div>
 
             <div class="controls-section">
-                <div class="control-group">
-                    <h3>Quick Actions</h3>
-                    <div class="control-buttons">
-                        <button class="control-btn" id="toggle-extension" title="Enable/Disable Seeker">
-                            <svg class="icon" viewBox="0 0 24 24">
-                                <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
-                            </svg>
-                            <span id="toggle-text">Enable</span>
-                        </button>
-                        <button class="control-btn" id="open-settings" title="Open Settings">
-                            <svg class="icon" viewBox="0 0 24 24">
-                                <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.22,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.22,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/>
-                            </svg>
-                            <span>Settings</span>
-                        </button>
-                    </div>
-                </div>
+                <button class="control-button primary" id="toggle-extension">
+                    <span id="toggle-text">Disable</span>
+                </button>
+                <button class="control-button secondary" id="open-settings">
+                    Settings
+                </button>
+            </div>
 
-                <div class="control-group">
-                    <h3>Player Info</h3>
-                    <div class="player-info">
-                        <div class="info-row">
-                            <span class="info-label">Status:</span>
-                            <span class="info-value" id="player-status">Not connected</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Keyboard:</span>
-                            <span class="info-value" id="keyboard-status">Disabled</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Notifications:</span>
-                            <span class="info-value clickable" id="notifications-status" title="Click to toggle">Disabled</span>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="control-group">
-                    <h3>Keyboard Shortcuts</h3>
-                    <div class="shortcuts-list">
-                        <div class="shortcut-item">
-                            <kbd>←/→</kbd>
-                            <span>Seek</span>
+            <div class="shortcuts-section">
+                <h3 class="section-title">Keyboard Shortcuts</h3>
+                <div class="shortcuts-grid">
+                    <div class="shortcut-row">
+                        <div class="shortcut-keys">
+                            <kbd>←</kbd><kbd>→</kbd>
                         </div>
-                        <div class="shortcut-item">
+                        <span class="shortcut-desc">Seek</span>
+                    </div>
+                    <div class="shortcut-row">
+                        <div class="shortcut-keys">
                             <kbd>Space</kbd>
-                            <span>Play/Pause</span>
                         </div>
-                        <div class="shortcut-item">
-                            <kbd>↑/↓</kbd>
-                            <span>Volume</span>
+                        <span class="shortcut-desc">Play/Pause</span>
+                    </div>
+                    <div class="shortcut-row">
+                        <div class="shortcut-keys">
+                            <kbd>↑</kbd><kbd>↓</kbd>
                         </div>
-                        <div class="shortcut-item">
+                        <span class="shortcut-desc">Volume</span>
+                    </div>
+                    <div class="shortcut-row">
+                        <div class="shortcut-keys">
                             <kbd>M</kbd>
-                            <span>Mute</span>
                         </div>
-                        <div class="shortcut-item">
+                        <span class="shortcut-desc">Mute</span>
+                    </div>
+                    <div class="shortcut-row">
+                        <div class="shortcut-keys">
                             <kbd>F</kbd>
-                            <span>Fullscreen</span>
                         </div>
-                        <div class="shortcut-item">
-                            <kbd>J/L</kbd>
-                            <span>Fast seek</span>
+                        <span class="shortcut-desc">Fullscreen</span>
+                    </div>
+                    <div class="shortcut-row">
+                        <div class="shortcut-keys">
+                            <kbd>J</kbd><kbd>L</kbd>
                         </div>
-                        <div class="shortcut-item" id="next-episode-shortcut" style="display: none;">
+                        <span class="shortcut-desc">Fast seek</span>
+                    </div>
+                    <div class="shortcut-row" id="next-episode-shortcut" style="display: none;">
+                        <div class="shortcut-keys">
                             <kbd>N</kbd>
-                            <span>Next episode (when available)</span>
                         </div>
-                        <div class="shortcut-item" id="skip-intro-shortcut" style="display: none;">
+                        <span class="shortcut-desc">Next episode</span>
+                    </div>
+                    <div class="shortcut-row" id="skip-intro-shortcut" style="display: none;">
+                        <div class="shortcut-keys">
                             <kbd>S</kbd>
-                            <span>Skip intro (when available)</span>
                         </div>
+                        <span class="shortcut-desc">Skip intro</span>
                     </div>
                 </div>
+            </div>
             </div>
         </main>
 

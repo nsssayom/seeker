@@ -67,11 +67,7 @@ class SeekerPopup {
             settingsBtn.addEventListener('click', () => this.openSettings());
         }
 
-        // Notifications toggle (clickable)
-        const notificationsStatus = document.getElementById('notifications-status');
-        if (notificationsStatus) {
-            notificationsStatus.addEventListener('click', () => this.toggleNotifications());
-        }
+        // No quick settings toggles anymore - status display only
 
         // Help link
         const helpLink = document.getElementById('help-link');
@@ -105,35 +101,88 @@ class SeekerPopup {
 
             console.log('Attempting to load status from tab:', this.currentTab.id);
 
-            // Execute script to get status
-            const results = await chrome.scripting.executeScript({
-                target: { tabId: this.currentTab.id },
-                func: () => {
-                    // Check if Seeker is available
-                    console.log('Popup checking for Seeker...', {
-                        getSeekerStatus: typeof window.getSeekerStatus,
-                        SeekerExtension: typeof window.SeekerExtension,
-                        location: window.location.href
+            // Try multiple times for slow-loading pages like Hulu
+            let retryCount = 0;
+            const maxRetries = 3;
+            let results = null;
+
+            while (retryCount < maxRetries) {
+                try {
+                    // Execute script to get status
+                    results = await chrome.scripting.executeScript({
+                        target: { tabId: this.currentTab.id },
+                        func: () => {
+                            // Check if Seeker is available
+                            console.log('Popup checking for Seeker...', {
+                                getSeekerStatus: typeof window.getSeekerStatus,
+                                SeekerExtension: typeof window.SeekerExtension,
+                                isSeekerReady: typeof window.isSeekerReady === 'function' ? window.isSeekerReady() : false,
+                                location: window.location.href,
+                                readyState: document.readyState
+                            });
+                            
+                            if (typeof window.getSeekerStatus === 'function') {
+                                const status = window.getSeekerStatus();
+                                console.log('Seeker status:', status);
+                                
+                                // If status indicates the extension isn't fully initialized, signal for retry
+                                if (status && status.error === 'Extension not fully initialized') {
+                                    console.log('Extension not fully initialized, will retry...');
+                                    return { loading: true, partialStatus: status };
+                                }
+                                
+                                return status;
+                            }
+                            
+                            // Check if the script is still loading
+                            if (document.readyState !== 'complete') {
+                                console.log('Page still loading, Seeker may not be ready yet');
+                                return { loading: true };
+                            }
+                            
+                            console.log('Seeker not available');
+                            return null;
+                        }
                     });
-                    
-                    if (typeof window.getSeekerStatus === 'function') {
-                        const status = window.getSeekerStatus();
-                        console.log('Seeker status:', status);
-                        return status;
+
+                    console.log(`Script execution results (attempt ${retryCount + 1}):`, results);
+
+                    if (results && results[0] && results[0].result) {
+                        if (results[0].result.loading) {
+                            console.log('Content script still loading, retrying...');
+                            
+                            // If we have partial status, use it while retrying
+                            if (results[0].result.partialStatus) {
+                                this.status = results[0].result.partialStatus;
+                                console.log('Using partial status while retrying:', this.status);
+                            }
+                            
+                            retryCount++;
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                            continue;
+                        }
+                        
+                        this.status = results[0].result;
+                        console.log('Status loaded successfully:', this.status);
+                        break;
+                    } else {
+                        retryCount++;
+                        if (retryCount < maxRetries) {
+                            console.log(`No status received, retrying in 500ms... (${retryCount}/${maxRetries})`);
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                        }
                     }
-                    
-                    console.log('Seeker not available');
-                    return null;
+                } catch (scriptError) {
+                    console.error(`Script execution error (attempt ${retryCount + 1}):`, scriptError);
+                    retryCount++;
+                    if (retryCount < maxRetries) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
                 }
-            });
+            }
 
-            console.log('Script execution results:', results);
-
-            if (results && results[0] && results[0].result) {
-                this.status = results[0].result;
-                console.log('Status loaded successfully:', this.status);
-            } else {
-                console.warn('No valid status returned, checking URL...');
+            if (!this.status || !results || !results[0] || !results[0].result) {
+                console.warn('No valid status returned after retries, checking URL...');
                 
                 // Check if we're on a supported domain
                 const url = this.currentTab.url;
@@ -154,6 +203,8 @@ class SeekerPopup {
                     features: {},
                     version: '1.0.0'
                 };
+                
+                // For supported sites, the retry mechanism above should have handled it
             }
 
             this.updateUI();
@@ -169,102 +220,73 @@ class SeekerPopup {
      * Update UI based on current status
      */
     updateUI() {
-        this.updateStatusIndicator();
-        this.updatePlatformInfo();
-        this.updatePlayerInfo();
+        this.updatePlatformSection();
+        this.updateStatusIndicators();
         this.updateToggleButton();
         this.updatePlatformShortcuts();
     }
 
     /**
-     * Update status indicator
+     * Update platform section in header
      */
-    updateStatusIndicator() {
-        const statusDot = document.getElementById('status-dot');
-        const statusText = document.getElementById('status-text');
-
-        if (!this.status) {
-            statusDot.className = 'status-dot';
-            statusText.textContent = 'Not available';
-            return;
-        }
-
-        if (this.status.platform === 'Unsupported site') {
-            statusDot.className = 'status-dot';
-            statusText.textContent = 'Unsupported site';
-        } else if (this.status.platform === 'Loading...') {
-            statusDot.className = 'status-dot';
-            statusText.textContent = 'Loading...';
-        } else if (this.status.initialized && this.status.player.connected) {
-            statusDot.className = 'status-dot connected';
-            statusText.textContent = 'Connected';
-        } else if (this.status.initialized) {
-            statusDot.className = 'status-dot disabled';
-            statusText.textContent = 'No player detected';
-        } else {
-            statusDot.className = 'status-dot';
-            statusText.textContent = 'Not initialized';
-        }
-    }
-
-    /**
-     * Update platform information
-     */
-    updatePlatformInfo() {
+    updatePlatformSection() {
+        const platformIcon = document.getElementById('platform-icon');
         const platformName = document.getElementById('platform-name');
 
-        if (this.status && this.status.platform) {
-            platformName.textContent = this.status.platform;
+        if (!this.status || !this.status.platform) {
+            platformIcon.src = '../icons/icon-32.png';
+            platformIcon.alt = 'Unknown';
+            platformName.textContent = 'Unknown';
+            return;
+        }
+
+        const platform = this.status.platform.toLowerCase();
+        
+        // Set platform-specific icon and name using real platform icons
+        if (platform.includes('paramount')) {
+            platformIcon.src = '../icons/platforms/paramount.png';
+            platformIcon.alt = 'Paramount+';
+            platformName.textContent = 'Paramount+';
+        } else if (platform.includes('hulu')) {
+            platformIcon.src = '../icons/platforms/hulu.png';
+            platformIcon.alt = 'Hulu';
+            platformName.textContent = 'Hulu';
+        } else if (platform.includes('max') || platform.includes('hbo')) {
+            platformIcon.src = '../icons/platforms/max.png';
+            platformIcon.alt = 'Max';
+            platformName.textContent = 'Max';
         } else {
-            platformName.textContent = 'Unknown Platform';
+            platformIcon.src = '../icons/icon-32.png';
+            platformIcon.alt = this.status.platform;
+            platformName.textContent = this.status.platform;
         }
     }
 
     /**
-     * Update player information
+     * Update status indicators
      */
-    updatePlayerInfo() {
-        const playerStatus = document.getElementById('player-status');
-        const keyboardStatus = document.getElementById('keyboard-status');
-        const notificationsStatus = document.getElementById('notifications-status');
+    updateStatusIndicators() {
+        const notificationsIndicator = document.getElementById('notifications-indicator');
+        const keyboardIndicator = document.getElementById('keyboard-indicator');
 
         if (!this.status) {
-            playerStatus.textContent = 'Not available';
-            playerStatus.className = 'info-value disabled';
-            
-            keyboardStatus.textContent = 'Not available';
-            keyboardStatus.className = 'info-value disabled';
-            
-            notificationsStatus.textContent = 'Not available';
-            notificationsStatus.className = 'info-value disabled';
+            notificationsIndicator.className = 'status-indicator disabled';
+            keyboardIndicator.className = 'status-indicator disabled';
             return;
         }
 
-        // Player status
-        if (this.status.player.connected) {
-            playerStatus.textContent = 'Connected';
-            playerStatus.className = 'info-value connected';
-        } else {
-            playerStatus.textContent = 'Not connected';
-            playerStatus.className = 'info-value disabled';
-        }
-
-        // Keyboard status
-        if (this.status.keyboardEnabled) {
-            keyboardStatus.textContent = 'Enabled';
-            keyboardStatus.className = 'info-value enabled';
-        } else {
-            keyboardStatus.textContent = 'Disabled';
-            keyboardStatus.className = 'info-value disabled';
-        }
-
-        // Notifications status
+        // Notifications indicator
         if (this.status.notificationsEnabled) {
-            notificationsStatus.textContent = 'Enabled';
-            notificationsStatus.className = 'info-value enabled clickable';
+            notificationsIndicator.className = 'status-indicator enabled';
         } else {
-            notificationsStatus.textContent = 'Disabled';
-            notificationsStatus.className = 'info-value disabled clickable';
+            notificationsIndicator.className = 'status-indicator disabled';
+        }
+
+        // Keyboard control indicator
+        if (this.status.keyboardEnabled) {
+            keyboardIndicator.className = 'status-indicator enabled';
+        } else {
+            keyboardIndicator.className = 'status-indicator disabled';
         }
     }
 
@@ -276,14 +298,14 @@ class SeekerPopup {
         const toggleText = document.getElementById('toggle-text');
 
         if (!this.status || this.status.platform === 'Unsupported site') {
-            toggleBtn.className = 'control-btn disabled';
+            toggleBtn.className = 'control-button primary';
             toggleText.textContent = 'Not Available';
             toggleBtn.disabled = true;
             return;
         }
 
         if (this.status.platform === 'Loading...') {
-            toggleBtn.className = 'control-btn disabled';
+            toggleBtn.className = 'control-button primary';
             toggleText.textContent = 'Loading...';
             toggleBtn.disabled = true;
             return;
@@ -292,47 +314,15 @@ class SeekerPopup {
         toggleBtn.disabled = false;
 
         if (this.status.keyboardEnabled) {
-            toggleBtn.className = 'control-btn active';
+            toggleBtn.className = 'control-button primary';
             toggleText.textContent = 'Disable';
         } else {
-            toggleBtn.className = 'control-btn';
+            toggleBtn.className = 'control-button primary';
             toggleText.textContent = 'Enable';
         }
     }
 
-    /**
-     * Toggle notifications enabled/disabled
-     */
-    async toggleNotifications() {
-        try {
-            if (!this.currentTab || !this.status) return;
-
-            const newState = !this.status.notificationsEnabled;
-
-            await chrome.scripting.executeScript({
-                target: { tabId: this.currentTab.id },
-                func: (enabled) => {
-                    if (typeof window.toggleSeekerNotifications === 'function') {
-                        window.toggleSeekerNotifications(enabled);
-                    }
-                },
-                args: [newState]
-            });
-
-            // Update status immediately
-            this.status.notificationsEnabled = newState;
-            this.updatePlayerInfo();
-
-            // Reload status after short delay
-            setTimeout(() => {
-                this.loadStatus();
-            }, 500);
-
-        } catch (error) {
-            console.error('Failed to toggle notifications:', error);
-            this.showError('Failed to toggle notifications');
-        }
-    }
+    // Toggle methods removed - status display only now
 
     /**
      * Update platform-specific shortcuts
@@ -456,6 +446,9 @@ class SeekerPopup {
     isSupportedPage() {
         if (!this.currentTab || !this.currentTab.url) return false;
 
+        // Get supported domains from centralized config
+        // Note: In popup context, we need to create a temporary config instance
+        // since we don't have access to the content script's config
         const supportedDomains = [
             'paramountplus.com',
             'hulu.com',

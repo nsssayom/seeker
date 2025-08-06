@@ -135,11 +135,22 @@ class KeyboardHandler {
         this.pressedKeys.add(key);
         this.lastKeyTime = now;
 
-        // Execute the mapped action FIRST
+        // For aggressive platforms like Hulu, prevent conflicts BEFORE executing action
+        const hostname = DOMUtils.getHostname();
+        const platformConfig = this.config ? this.config.getPlatformConfig(hostname) : null;
+        const isAggressivePlatform = hostname.includes('hulu.com');
+        
+        if (isAggressivePlatform && platformConfig && platformConfig.needsConflictPrevention) {
+            this.preventPlatformConflicts(event, key);
+        }
+        
+        // Execute the mapped action
         this.executeAction(mapping, event);
         
-        // Then handle platform conflicts if needed
-        this.preventPlatformConflicts(event, key);
+        // Then handle platform conflicts for non-aggressive platforms
+        if (!isAggressivePlatform) {
+            this.preventPlatformConflicts(event, key);
+        }
         
         logger.debug(`Executed action: ${mapping.action} for key: ${key}`);
     }
@@ -170,11 +181,16 @@ class KeyboardHandler {
             event.stopPropagation();
         }
 
-        // Platform-specific conflict prevention
+        // Platform-specific conflict prevention using centralized config
         const hostname = DOMUtils.getHostname();
+        const platformConfig = this.config ? this.config.getPlatformConfig(hostname) : null;
         
-        if (hostname.includes('paramountplus.com')) {
-            this.preventParamountConflicts(event, key);
+        if (platformConfig && platformConfig.needsConflictPrevention) {
+            if (hostname.includes('paramountplus.com')) {
+                this.preventParamountConflicts(event, key);
+            } else if (hostname.includes('hulu.com')) {
+                this.preventHuluConflicts(event, key);
+            }
         }
     }
 
@@ -201,6 +217,35 @@ class KeyboardHandler {
     }
 
     /**
+     * Prevent Hulu specific conflicts
+     * @param {KeyboardEvent} event - Keyboard event
+     * @param {string} key - Key identifier
+     */
+    preventHuluConflicts(event, key) {
+        // Hulu specific keys that need conflict prevention
+        // Hulu has aggressive keyboard handling that interferes with M and K keys
+        const huluKeys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'KeyJ', 'KeyL', 'KeyK', 'KeyM', 'KeyF', 'KeyC'];
+        
+        if (huluKeys.includes(key) && this.keyMappings.has(key)) {
+            const mapping = this.keyMappings.get(key);
+            
+            // For Hulu, we need to be more aggressive in preventing default
+            // because their player intercepts many keys before our handlers run
+            if (!mapping.platformHandled) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // For Hulu, also stop immediate propagation to prevent their handlers from running
+                if (event.stopImmediatePropagation) {
+                    event.stopImmediatePropagation();
+                }
+            }
+            
+            logger.debug(`Handled Hulu conflict for key: ${key}`);
+        }
+    }
+
+    /**
      * Check if key should be handled
      * @param {KeyboardEvent} event - Keyboard event
      * @returns {boolean} Whether to handle the key
@@ -217,7 +262,22 @@ class KeyboardHandler {
             return false;
         }
 
-        // Don't handle if not on a video page
+        // For supported platforms, allow key handling even if player isn't detected yet
+        // This fixes race condition issues on streaming platforms
+        const hostname = DOMUtils.getHostname();
+        const isSupportedPlatform = this.config ? this.config.isSupportedPlatform(hostname) : 
+                                   (hostname.includes('hulu.com') || 
+                                    hostname.includes('paramountplus.com') ||
+                                    hostname.includes('disneyplus.com') ||
+                                    hostname.includes('max.com'));
+
+        // If on supported platform, check if there's at least a video element
+        if (isSupportedPlatform) {
+            const hasVideo = document.querySelector('video');
+            return !!hasVideo;
+        }
+
+        // For other platforms, require player detection
         if (!this.mediaController.currentPlayer) {
             return false;
         }

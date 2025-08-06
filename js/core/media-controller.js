@@ -528,9 +528,19 @@ class MediaController {
      * Toggle play/pause
      */
     togglePlayPause() {
-        if (!this.canControlPlayback()) return false;
+        // Try to get video element directly if player isn't detected yet
+        const video = this.currentPlayer?.video || document.querySelector('video');
+        
+        if (!video) {
+            logger.debug('No video element found for play/pause');
+            return false;
+        }
 
-        const video = this.currentPlayer.video;
+        // Check if playback control is enabled in config
+        if (this.config && !this.config.get('enablePlaybackControl', true)) {
+            logger.debug('Playback control disabled in settings');
+            return false;
+        }
         
         if (video.paused) {
             video.play().then(() => {
@@ -587,12 +597,25 @@ class MediaController {
         if (step === null) {
             step = this.config ? this.config.get('volumeStep', 0.1) : 0.1;
         }
-        if (!this.canControlVolume()) return false;
+        
+        // Try to get video element directly if player isn't detected yet
+        const video = this.currentPlayer?.video || document.querySelector('video');
+        
+        if (!video) {
+            logger.debug('No video element found for volume control');
+            return false;
+        }
 
-        const video = this.currentPlayer.video;
+        // Check if volume control is enabled in config
+        if (this.config && !this.config.get('enableVolumeControl', true)) {
+            logger.debug('Volume control disabled in settings');
+            return false;
+        }
+
         const newVolume = Math.min(video.volume + step, 1);
         
         video.volume = newVolume;
+        video.muted = false; // Unmute when changing volume
         logger.debug(`Volume increased to ${(newVolume * 100).toFixed(0)}%`);
         
         if (this.config && this.config.get('enableNotifications', true)) {
@@ -610,9 +633,21 @@ class MediaController {
         if (step === null) {
             step = this.config ? this.config.get('volumeStep', 0.1) : 0.1;
         }
-        if (!this.canControlVolume()) return false;
+        
+        // Try to get video element directly if player isn't detected yet
+        const video = this.currentPlayer?.video || document.querySelector('video');
+        
+        if (!video) {
+            logger.debug('No video element found for volume control');
+            return false;
+        }
 
-        const video = this.currentPlayer.video;
+        // Check if volume control is enabled in config
+        if (this.config && !this.config.get('enableVolumeControl', true)) {
+            logger.debug('Volume control disabled in settings');
+            return false;
+        }
+
         const newVolume = Math.max(video.volume - step, 0);
         
         video.volume = newVolume;
@@ -629,9 +664,20 @@ class MediaController {
      * Toggle mute
      */
     toggleMute() {
-        if (!this.canControlVolume()) return false;
+        // Try to get video element directly if player isn't detected yet
+        const video = this.currentPlayer?.video || document.querySelector('video');
+        
+        if (!video) {
+            logger.debug('No video element found for mute');
+            return false;
+        }
 
-        const video = this.currentPlayer.video;
+        // Check if volume control is enabled in config
+        if (this.config && !this.config.get('enableVolumeControl', true)) {
+            logger.debug('Volume control disabled in settings');
+            return false;
+        }
+
         video.muted = !video.muted;
         
         logger.debug(`Video ${video.muted ? 'muted' : 'unmuted'}`);
