@@ -303,8 +303,8 @@ class SettingsOverlay {
                 align-items: center;
                 justify-content: space-between;
                 padding: 20px 24px;
-                border-bottom: 1px solid #e5e7eb;
-                background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+                border-bottom: 1px solid #CCCCCC;
+                background: #F7F7F7;
                 flex-shrink: 0;
             }
             
@@ -312,7 +312,7 @@ class SettingsOverlay {
                 margin: 0;
                 font-size: 18px;
                 font-weight: 600;
-                color: #1f2937;
+                color: #1d1d1f;
             }
             
             .seeker-settings-close {
@@ -352,16 +352,16 @@ class SettingsOverlay {
                 margin: 0 0 12px 0;
                 font-size: 15px;
                 font-weight: 600;
-                color: #1f2937;
+                color: #1d1d1f;
                 display: flex;
                 align-items: center;
                 gap: 8px;
                 padding-bottom: 6px;
-                border-bottom: 2px solid #3b82f6;
+                border-bottom: 2px solid #F57F17;
             }
             
             .section-icon {
-                color: #3b82f6;
+                color: #F57F17;
             }
             
             .seeker-setting-row {
@@ -383,14 +383,14 @@ class SettingsOverlay {
             .setting-info label {
                 font-size: 14px;
                 font-weight: 500;
-                color: #374151;
+                color: #1d1d1f;
                 margin: 0;
                 cursor: pointer;
             }
             
             .setting-desc {
                 font-size: 12px;
-                color: #6b7280;
+                color: #6c6c70;
                 line-height: 1.3;
             }
             
@@ -398,16 +398,16 @@ class SettingsOverlay {
                 display: flex;
                 align-items: center;
                 gap: 6px;
-                background: #f9fafb;
-                border: 1px solid #d1d5db;
+                background: #F7F7F7;
+                border: 1px solid #CCCCCC;
                 border-radius: 8px;
                 padding: 2px 8px 2px 2px;
                 transition: all 0.2s ease;
             }
             
             .number-input-container:focus-within {
-                border-color: #3b82f6;
-                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+                border-color: #F57F17;
+                box-shadow: 0 0 0 3px rgba(245, 127, 23, 0.1);
             }
             
             .number-input-container input[type="number"] {
@@ -417,14 +417,14 @@ class SettingsOverlay {
                 background: transparent;
                 font-size: 14px;
                 font-weight: 500;
-                color: #374151;
+                color: #1d1d1f;
                 text-align: center;
                 outline: none;
             }
             
             .input-unit {
                 font-size: 12px;
-                color: #6b7280;
+                color: #6c6c70;
                 font-weight: 500;
             }
             
@@ -446,7 +446,7 @@ class SettingsOverlay {
                 display: inline-block;
                 width: 44px;
                 height: 24px;
-                background: #d1d5db;
+                background: #CCCCCC;
                 border-radius: 12px;
                 cursor: pointer;
                 transition: all 0.3s ease;
@@ -467,7 +467,7 @@ class SettingsOverlay {
             }
             
             .toggle-input:checked + .toggle-label {
-                background: #3b82f6;
+                background: #F57F17;
             }
             
             .toggle-input:checked + .toggle-label .toggle-slider {
@@ -475,7 +475,7 @@ class SettingsOverlay {
             }
             
             .toggle-input:focus + .toggle-label {
-                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+                box-shadow: 0 0 0 3px rgba(245, 127, 23, 0.2);
             }
             
             /* Shortcuts Section */
@@ -494,42 +494,44 @@ class SettingsOverlay {
                 align-items: center;
                 justify-content: space-between;
                 padding: 8px 12px;
-                background: #f8fafc;
+                background: #F7F7F7;
                 border-radius: 8px;
-                border: 1px solid #e5e7eb;
+                border: 1px solid transparent;
                 transition: all 0.2s ease;
             }
             
             .seeker-shortcut-item:hover {
-                background: #f1f5f9;
-                border-color: #d1d5db;
+                background: #f0f0f0;
+                border-color: #e0e0e0;
             }
             
             .shortcut-key {
-                font-family: 'Monaco', 'Consolas', 'SF Mono', monospace;
-                background: #374151;
-                color: white;
-                padding: 4px 8px;
-                border-radius: 6px;
-                font-size: 11px;
+                font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+                background: white;
+                color: #1d1d1f;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 10px;
                 font-weight: 600;
                 min-width: fit-content;
                 text-align: center;
-                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+                border: 1px solid #CCCCCC;
+                box-shadow: 0 1px 0 #e0e0e0;
             }
             
             .shortcut-desc {
-                font-size: 13px;
-                color: #6b7280;
+                font-size: 11px;
+                color: #6c6c70;
                 margin-left: 8px;
                 flex: 1;
+                font-weight: 500;
             }
             
             /* About Section */
             .seeker-about-info {
                 font-size: 14px;
                 line-height: 1.5;
-                color: #6b7280;
+                color: #6c6c70;
             }
             
             .about-item {
@@ -540,11 +542,11 @@ class SettingsOverlay {
             }
             
             .about-item strong {
-                color: #374151;
+                color: #1d1d1f;
             }
             
             .version-badge {
-                background: #3b82f6;
+                background: #F57F17;
                 color: white;
                 padding: 2px 8px;
                 border-radius: 12px;
@@ -559,12 +561,12 @@ class SettingsOverlay {
             .seeker-platform-status {
                 margin-top: 12px;
                 padding: 10px 12px;
-                background: #ecfdf5;
-                border: 1px solid #a7f3d0;
+                background: #fff8e1;
+                border: 1px solid #ffc107;
                 border-radius: 8px;
-                font-family: 'Monaco', 'Consolas', 'SF Mono', monospace;
+                font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
                 font-size: 12px;
-                color: #047857;
+                color: #BF360C;
             }
             
             /* Footer */
@@ -573,8 +575,8 @@ class SettingsOverlay {
                 align-items: center;
                 justify-content: space-between;
                 padding: 16px 24px;
-                border-top: 1px solid #e5e7eb;
-                background: #f8fafc;
+                border-top: 1px solid #e0e0e0;
+                background: #F7F7F7;
                 flex-shrink: 0;
             }
             
@@ -583,7 +585,7 @@ class SettingsOverlay {
                 align-items: center;
                 gap: 6px;
                 font-size: 12px;
-                color: #059669;
+                color: #2e7d32;
                 opacity: 0;
                 transition: opacity 0.3s ease;
             }
@@ -593,7 +595,7 @@ class SettingsOverlay {
             }
             
             .auto-save-status svg {
-                color: #059669;
+                color: #2e7d32;
             }
             
             .seeker-btn {
@@ -611,30 +613,30 @@ class SettingsOverlay {
             }
             
             .seeker-btn:focus {
-                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+                box-shadow: 0 0 0 3px rgba(245, 127, 23, 0.2);
             }
             
             .seeker-btn-primary {
-                background: #3b82f6;
+                background: #F57F17;
                 color: white;
             }
             
             .seeker-btn-primary:hover {
-                background: #2563eb;
+                background: #BF360C;
                 transform: translateY(-1px);
-                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+                box-shadow: 0 4px 12px rgba(245, 127, 23, 0.3);
             }
             
             .seeker-btn-secondary {
-                background: white;
-                color: #6b7280;
-                border: 1px solid #d1d5db;
+                background: #F7F7F7;
+                color: #1d1d1f;
+                border: 1px solid #CCCCCC;
             }
             
             .seeker-btn-secondary:hover {
-                background: #f9fafb;
-                color: #374151;
-                border-color: #9ca3af;
+                background: #e8e8e8;
+                color: #1d1d1f;
+                border-color: #999999;
             }
             
             /* Animations */
@@ -656,148 +658,150 @@ class SettingsOverlay {
             
             /* Dark Theme */
             .seeker-dark-theme {
-                background: #1f2937 !important;
-                color: #f9fafb !important;
+                background: #2c2c2e !important;
+                color: #ffffff !important;
             }
             
             .seeker-dark-theme .seeker-settings-header {
-                background: linear-gradient(135deg, #374151 0%, #1f2937 100%) !important;
-                border-bottom-color: #374151 !important;
+                background: #1c1c1e !important;
+                border-bottom-color: #38383a !important;
             }
             
             .seeker-dark-theme .seeker-settings-header h2 {
-                color: #f9fafb !important;
+                color: #ffffff !important;
             }
             
             .seeker-dark-theme .seeker-settings-close {
-                color: #9ca3af !important;
+                color: #8e8e93 !important;
             }
             
             .seeker-dark-theme .seeker-settings-close:hover {
                 background: rgba(255, 255, 255, 0.1) !important;
-                color: #f3f4f6 !important;
+                color: #ffffff !important;
             }
             
             .seeker-dark-theme .seeker-settings-footer {
-                background: #374151 !important;
-                border-top-color: #4b5563 !important;
+                background: #1c1c1e !important;
+                border-top-color: #38383a !important;
             }
             
             .seeker-dark-theme .auto-save-status {
-                color: #10b981 !important;
+                color: #32d74b !important;
             }
             
             .seeker-dark-theme .auto-save-status svg {
-                color: #10b981 !important;
+                color: #32d74b !important;
             }
             
             .seeker-dark-theme .seeker-settings-section h3 {
-                color: #f9fafb !important;
-                border-bottom-color: #60a5fa !important;
+                color: #ffffff !important;
+                border-bottom-color: #F57F17 !important;
             }
             
             .seeker-dark-theme .section-icon {
-                color: #60a5fa !important;
+                color: #F57F17 !important;
             }
             
             .seeker-dark-theme .setting-info label {
-                color: #e5e7eb !important;
+                color: #ffffff !important;
             }
             
             .seeker-dark-theme .setting-desc {
-                color: #9ca3af !important;
+                color: #8e8e93 !important;
             }
             
             .seeker-dark-theme .number-input-container {
-                background: #374151 !important;
-                border-color: #4b5563 !important;
+                background: #1c1c1e !important;
+                border-color: #38383a !important;
             }
             
             .seeker-dark-theme .number-input-container:focus-within {
-                border-color: #60a5fa !important;
-                box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+                border-color: #F57F17 !important;
+                box-shadow: 0 0 0 3px rgba(245, 127, 23, 0.1) !important;
             }
             
             .seeker-dark-theme .number-input-container input[type="number"] {
-                color: #f9fafb !important;
+                color: #ffffff !important;
             }
             
             .seeker-dark-theme .input-unit {
-                color: #9ca3af !important;
+                color: #8e8e93 !important;
             }
             
             .seeker-dark-theme .toggle-label {
-                background: #4b5563 !important;
+                background: #CCCCCC !important;
             }
             
             .seeker-dark-theme .toggle-input:checked + .toggle-label {
-                background: #60a5fa !important;
+                background: #F57F17 !important;
             }
             
             .seeker-dark-theme .toggle-input:focus + .toggle-label {
-                box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2) !important;
+                box-shadow: 0 0 0 3px rgba(245, 127, 23, 0.2) !important;
             }
             
             .seeker-dark-theme .seeker-shortcut-item {
-                background: #374151 !important;
-                border-color: #4b5563 !important;
+                background: #1c1c1e !important;
+                border-color: transparent !important;
             }
             
             .seeker-dark-theme .seeker-shortcut-item:hover {
-                background: #4b5563 !important;
-                border-color: #6b7280 !important;
+                background: #2c2c2e !important;
+                border-color: #38383a !important;
             }
             
             .seeker-dark-theme .shortcut-key {
-                background: #1f2937 !important;
-                color: #f9fafb !important;
+                background: #38383a !important;
+                color: #ffffff !important;
+                border-color: #48484a !important;
+                box-shadow: 0 1px 0 #5e5e60 !important;
             }
             
             .seeker-dark-theme .shortcut-desc {
-                color: #9ca3af !important;
+                color: #8e8e93 !important;
             }
             
             .seeker-dark-theme .seeker-about-info {
-                color: #9ca3af !important;
+                color: #8e8e93 !important;
             }
             
             .seeker-dark-theme .about-item strong {
-                color: #e5e7eb !important;
+                color: #ffffff !important;
             }
             
             .seeker-dark-theme .version-badge {
-                background: #60a5fa !important;
+                background: #F57F17 !important;
             }
             
             .seeker-dark-theme .seeker-platform-status {
-                background: #064e3b !important;
-                border-color: #047857 !important;
-                color: #a7f3d0 !important;
+                background: #2d1b1b !important;
+                border-color: #4a1d1d !important;
+                color: #ff6b6b !important;
             }
             
             .seeker-dark-theme .seeker-btn-primary {
-                background: #60a5fa !important;
+                background: #F57F17 !important;
             }
             
             .seeker-dark-theme .seeker-btn-primary:hover {
-                background: #3b82f6 !important;
-                box-shadow: 0 4px 12px rgba(96, 165, 250, 0.3) !important;
+                background: #BF360C !important;
+                box-shadow: 0 4px 12px rgba(245, 127, 23, 0.3) !important;
             }
             
             .seeker-dark-theme .seeker-btn-secondary {
-                background: #374151 !important;
-                color: #9ca3af !important;
-                border-color: #4b5563 !important;
+                background: #1c1c1e !important;
+                color: #8e8e93 !important;
+                border-color: #48484a !important;
             }
             
             .seeker-dark-theme .seeker-btn-secondary:hover {
-                background: #4b5563 !important;
-                color: #e5e7eb !important;
+                background: #38383a !important;
+                color: #ffffff !important;
                 border-color: #6b7280 !important;
             }
             
             .seeker-dark-theme .seeker-btn:focus {
-                box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2) !important;
+                box-shadow: 0 0 0 3px rgba(245, 127, 23, 0.2) !important;
             }
 
             /* Responsive Design */
